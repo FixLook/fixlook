@@ -72,6 +72,10 @@ create table public.conversation_reads (
 );
 
 -- No browser can change role, verification, payment state, prices or order ownership.
+-- This permissive policy was added manually on the original hosted project.
+drop policy if exists "Allow all users to read profiles" on public.profiles;
+-- Auth invokes this as a trigger; it is not an application RPC.
+revoke execute on function public.handle_new_user() from public, anon, authenticated;
 revoke insert, update, delete on public.profiles, public.masters, public.orders, public.payments from anon, authenticated;
 grant update (full_name, phone, city) on public.profiles to authenticated;
 grant update (description, hourly_rate, available) on public.masters to authenticated;

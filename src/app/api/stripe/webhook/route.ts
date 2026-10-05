@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
-import { syncPaidCheckoutSession } from "@/lib/payments";
+import { retryFailedCheckoutSession, syncPaidCheckoutSession } from "@/lib/payments";
 import { createServiceSupabaseClient } from "@/lib/supabase/server";
 import type Stripe from "stripe";
 export const runtime = "nodejs";
@@ -12,9 +12,14 @@ export async function POST(request: Request) {
   let event: Stripe.Event;
   try { event = getStripe().webhooks.constructEvent(await request.text(), signature, secret); }
   catch { return NextResponse.json({ error: "Neplatný podpis." }, { status: 400 }); }
+  if (event.livemode !== (process.env.STRIPE_EXPECTED_MODE === "live")) {
+    return NextResponse.json({ error: "Nesprávny režim platby." }, { status: 400 });
+  }
   try {
     if (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") {
       await syncPaidCheckoutSession(event.data.object);
+    } else if (event.type === "checkout.session.async_payment_failed") {
+      await retryFailedCheckoutSession(event.data.object);
     } else if (event.type === "charge.refunded") {
       const charge = event.data.object;
       const intent = typeof charge.payment_intent === "string" ? charge.payment_intent : charge.payment_intent?.id;

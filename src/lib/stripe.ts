@@ -1,16 +1,16 @@
 import "server-only";
 
 import Stripe from "stripe";
+import { STRIPE_API_VERSION, stripeKeyForMode } from "@/lib/stripe-config";
 
 let stripe: Stripe | null = null;
 
 export function getStripe() {
-  if (!process.env.STRIPE_SECRET_KEY) {
-    throw new Error("STRIPE_SECRET_KEY is required.");
-  }
+  const key = stripeKeyForMode(process.env.STRIPE_SECRET_KEY, process.env.STRIPE_EXPECTED_MODE);
 
   if (!stripe) {
-    stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    stripe = new Stripe(key, {
+      apiVersion: STRIPE_API_VERSION,
       typescript: true
     });
   }

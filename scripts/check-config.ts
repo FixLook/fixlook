@@ -1,6 +1,7 @@
 import { config } from "dotenv";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "../src/lib/database.types";
+import { stripeKeyForMode } from "../src/lib/stripe-config";
 
 config({ path: ".env.local" });
 config();
@@ -36,9 +37,9 @@ for (const name of ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_APP_URL"]) {
     errors.push(`${name} nie je platná HTTP(S) adresa.`);
   }
 }
-if (live && !process.env.STRIPE_SECRET_KEY?.startsWith("sk_live_")) {
-  errors.push("Pre ostrú prevádzku je potrebný Stripe live kľúč. Testovací kľúč neúčtuje skutočné platby.");
-}
+try { stripeKeyForMode(process.env.STRIPE_SECRET_KEY, live ? "live" : "test"); }
+catch { errors.push(live ? "Pre ostrú prevádzku je potrebný serverový Stripe live kľúč." : "Pre testovanie je potrebný serverový Stripe test kľúč."); }
+if (process.env.STRIPE_EXPECTED_MODE !== (live ? "live" : "test")) errors.push("STRIPE_EXPECTED_MODE musí zodpovedať overovanému prostrediu (test/live).");
 if (process.env.STRIPE_WEBHOOK_SECRET && !process.env.STRIPE_WEBHOOK_SECRET.startsWith("whsec_")) {
   errors.push("STRIPE_WEBHOOK_SECRET nemá očakávaný formát.");
 }

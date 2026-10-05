@@ -28,6 +28,8 @@ test("PostgreSQL: quotes, payments, permissions and private conversations", asyn
     alter default privileges in schema public grant all on sequences to anon,authenticated,service_role;
   `);
   await db.exec(await readFile("supabase/migrations/001_init.sql", "utf8"));
+  // Reproduce the extra permissive policy discovered on the hosted MVP.
+  await db.exec('create policy "Allow all users to read profiles" on public.profiles for select using (true)');
   await db.exec(await readFile("supabase/migrations/002_quotes_messages_security.sql", "utf8"));
   for (const [id, role, name] of [[customer,"customer","Zákazník"],[master,"master","Majster"],[admin,"customer","Administrátor"],[stranger,"customer","Cudzí zákazník"],[unverified,"master","Neoverený majster"]]) {
     await db.query("insert into auth.users values ($1,$2,$3)", [id, `${id}@example.test`, JSON.stringify({ role, full_name: name })]);
@@ -50,6 +52,9 @@ test("PostgreSQL: quotes, payments, permissions and private conversations", asyn
     return (await as<{ value: T }>(id, sql, params, role))[0]?.value;
   }
   await t.test("roles, verification and payment fields cannot be forged", async () => {
+    assert.equal((await as(null, "select * from public.profiles", [], "anon")).length, 0);
+    assert.equal((await as(stranger, "select * from public.profiles where id=$1", [customer])).length, 0);
+    await assert.rejects(as(null, "select public.handle_new_user()", [], "anon"), /permission denied/);
     await assert.rejects(as(customer, "update public.profiles set role='admin' where id=$1", [customer]), /permission denied/);
     await assert.rejects(as(master, "update public.masters set verified=true where profile_id=$1", [master]), /permission denied/);
     await assert.rejects(as(customer, "insert into public.profiles(id,full_name,email,role) values(gen_random_uuid(),'Fake','fake@test','admin')"), /permission denied/);

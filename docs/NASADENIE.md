@@ -26,6 +26,8 @@ Tento postup je kontrolný zoznam pre prevádzkovateľa. Príprava kódu sama ne
 7. Pôvodné už uhradené platby sa zachovajú. Prípadné ďalšie práce sa schvaľujú ako nové ponuky a pôvodná suma ostáva v celkovom súčte. Staré čakajúce platby bez `quote_id` sa zámerne nedajú zaplatiť novým tokom bez vyriešenia podpory. Nový webhook tiež nepreberá staré relácie bez nových metadát.
 8. Fotografie sa stanú súkromnými a staré verejné URL sa v metadátach prevedú na cesty. Už stiahnuté alebo uložené kópie to neodvolá.
 
+Migrácia odstraňuje aj dodatočné pravidlo `Allow all users to read profiles`, ktoré sa našlo na pôvodnom hostovanom projekte a umožňovalo verejné čítanie profilov. Funkcia `handle_new_user` zostáva spúšťaná registráciou ako trigger, ale klient ju nemôže volať priamo cez API. Pred migráciou porovnajte aj ostatné ručne doplnené pravidlá s repozitárom.
+
 Nikdy nepoužite opätovné spustenie `001` ako opravu: obnovilo by pôvodné oprávnenia. Návrat starej aplikácie vyžaduje koordinovaný návrat schémy a dát; pri nových platbách najprv posúďte ich zachovanie.
 
 ## 2. Supabase, prihlásenie a fotografie
@@ -50,13 +52,15 @@ Oficiálne podklady: [Supabase SMTP](https://supabase.com/docs/guides/auth/auth-
 
 ## 3. Stripe a nejasný výsledok platby
 
-1. Najprv nastavte `STRIPE_SECRET_KEY=sk_test_…`. Live kľúč použite až po schválení testovacieho toku a obchodného modelu. Hosted Checkout nepotrebuje v tejto aplikácii klientský publishable kľúč; historická premenná v `.env.example` je voliteľná.
+1. Najprv nastavte serverový testovací kľúč v `STRIPE_SECRET_KEY` a `STRIPE_EXPECTED_MODE=test`. Uprednostnite obmedzený kľúč `rk_test_…` s oprávneniami na vytváranie a čítanie Checkout Sessions a čítanie PaymentIntents; podporovaný je aj `sk_test_…`. Aplikácia odmietne chýbajúci režim aj kľúč z opačného prostredia. Live kľúč a `STRIPE_EXPECTED_MODE=live` použite až po schválení testovacieho toku a obchodného modelu. Hosted Checkout nepotrebuje v tejto aplikácii klientský publishable kľúč; historická premenná v `.env.example` je voliteľná.
 2. Nastavte verejnú HTTPS adresu v `NEXT_PUBLIC_APP_URL`, bez koncového lomítka, cesty a parametrov.
-3. Vytvorte endpoint `https://vasa-domena/api/stripe/webhook` a jeho vlastné `STRIPE_WEBHOOK_SECRET=whsec_…`. Aktivujte udalosti `checkout.session.completed`, `checkout.session.async_payment_succeeded` a `charge.refunded`.
+3. Vytvorte endpoint `https://vasa-domena/api/stripe/webhook` a jeho vlastné `STRIPE_WEBHOOK_SECRET=whsec_…`. Nastavte API verziu endpointu na `2026-09-30.endive`, ktorú aplikácia explicitne používa cez Stripe SDK 23.0.0. Nemeňte tým predvolenú API verziu celého Stripe účtu. Aktivujte udalosti `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed` a `charge.refunded`. Podpísané udalosti z opačného test/live režimu aplikácia odmieta.
 4. Pri lokálnom teste môžete použiť `stripe listen --forward-to localhost:3000/api/stripe/webhook`. Jeho podpisový secret nie je secret produkčného endpointu.
-5. Otestujte zaplatenie, odmietnutie karty, zatvorenie Checkout, opakované kliknutie na Zaplatiť, opakované doručenie webhooku a oneskorený webhook. Samotný návrat na success URL nie je dôkazom platby; server kontroluje Stripe a vlastníctvo objednávky.
+5. Otestujte zaplatenie, odmietnutie karty, zatvorenie Checkout, opakované kliknutie na Zaplatiť, opakované doručenie webhooku a oneskorený webhook. Checkout používa platobné metódy spravované v Stripe Dashboard; pred pilotom povoľte iba metódy, ktoré ste overili. Pri oneskorenej metóde otestujte úspech aj zlyhanie a následný nový pokus. Samotný návrat na success URL nie je dôkazom platby; server kontroluje Stripe a vlastníctvo objednávky.
 
 Platba je viazaná na konkrétnu schválenú ponuku. Server kontroluje sumu, menu, zákazníka, objednávku, pokus a Stripe reláciu. Pri chybe uloženia webhook vráti chybu, aby Stripe mohol doručenie zopakovať.
+
+Po zlyhaní oneskorenej platby sa nový pokus povolí iba po opätovnom načítaní Stripe, keď je Checkout dokončený a nezaplatený a PaymentIntent je v stave `requires_payment_method` alebo `canceled`. Otvorená relácia, spracúvaná platba ani už uhradený pokus sa týmto postupom neresetujú. Samotná stará udalosť o zlyhaní nestačí.
 
 Ak po prerušení komunikácie chýba uložené ID relácie a pokus je starší než 23 hodín, aplikácia nový Checkout neotvorí. Podpora musí stav preveriť podľa metadát `paymentId`, `quoteId`, `orderId`, `customerId`, `attempt` v Stripe. Zaplatenú reláciu zosynchronizujte overeným webhookom. Nový pokus povoľte až po jednoznačnom overení, že predchádzajúca relácia nie je zaplatená a už nemôže byť zaplatená; neprepisujte platobné stavy naslepo. Funkcie na zmenu pokusu sú dostupné iba serverovému servisnému účtu.
 

@@ -4,14 +4,14 @@
 
 :root {
   --background: 0 0% 100%;
-  --foreground: 222 47% 11%;
+  --foreground: 212 32% 9%;
   --card: 0 0% 100%;
-  --card-foreground: 222 47% 11%;
-  --muted: 210 40% 96%;
+  --card-foreground: 212 32% 9%;
+  --muted: 204 72% 97%;
   --muted-foreground: 215 16% 47%;
-  --border: 214 32% 91%;
-  --input: 214 32% 91%;
-  --ring: 164 100% 39%;
+  --border: 205 36% 87%;
+  --input: 205 36% 77%;
+  --ring: 200 90% 27%;
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 98%;
 }
@@ -23,6 +23,17 @@
 body {
   background: hsl(var(--background));
   color: hsl(var(--foreground));
+}
+
+::selection {
+  background: #2bb2ff;
+  color: #10171f;
+}
+
+a:focus-visible,
+summary:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 3px;
 }
 
 input,

@@ -72,7 +72,7 @@ export default async function AdminServicesPage() {
                   <p className="mt-1 text-sm text-muted-foreground">
                     {formatEstimate(service.base_price, service.estimate_max)} - {service.description}
                   </p>
-                  <details className="mt-3"><summary className="cursor-pointer text-sm font-medium text-emerald-800">Upraviť službu a ceny</summary><form action={updateServiceAction} className="mt-3 space-y-3">
+                  <details className="mt-3"><summary className="cursor-pointer text-sm font-medium text-primary-strong">Upraviť službu a ceny</summary><form action={updateServiceAction} className="mt-3 space-y-3">
                     <input type="hidden" name="serviceId" value={service.id} />
                     <div><Label htmlFor={`name-${service.id}`}>Názov</Label><Input id={`name-${service.id}`} name="name" defaultValue={service.name} required /></div>
                     <div><Label htmlFor={`description-${service.id}`}>Popis</Label><Textarea id={`description-${service.id}`} name="description" defaultValue={service.description ?? ""} /></div>

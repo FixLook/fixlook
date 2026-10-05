@@ -18,13 +18,15 @@ const config: Config = {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         primary: {
-          DEFAULT: "#00C896",
-          foreground: "#052e25"
+          DEFAULT: "#2BB2FF",
+          foreground: "#10171F",
+          strong: "#075985",
+          soft: "#EAF7FF"
         },
-        dark: "#0F172A",
+        dark: "#10171F",
         accent: {
-          DEFAULT: "#F8FAFC",
-          foreground: "#0F172A"
+          DEFAULT: "#F0F8FD",
+          foreground: "#10171F"
         },
         muted: {
           DEFAULT: "hsl(var(--muted))",

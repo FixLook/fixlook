@@ -16,7 +16,7 @@ export default async function RegisterPage({
   const params = await searchParams;
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-accent px-4 py-10">
+    <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary-soft via-accent to-white px-4 py-10">
       <Card className="w-full max-w-xl bg-white">
         <CardHeader>
           <BrandLogo />

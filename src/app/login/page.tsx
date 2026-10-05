@@ -15,7 +15,7 @@ export default async function LoginPage({
   const params = await searchParams;
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-accent px-4 py-10">
+    <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary-soft via-accent to-white px-4 py-10">
       <Card className="w-full max-w-md bg-white">
         <CardHeader>
           <BrandLogo />
@@ -43,7 +43,7 @@ export default async function LoginPage({
               Prihlásiť sa
             </SubmitButton>
           </form>
-          <Link href="/forgot-password" className="mt-4 block text-sm text-emerald-800">Zabudli ste heslo?</Link>
+          <Link href="/forgot-password" className="mt-4 block text-sm text-primary-strong">Zabudli ste heslo?</Link>
           <p className="mt-5 text-center text-sm text-muted-foreground">
             Ešte nemáte účet?{" "}
             <Link href="/register" className="font-semibold text-dark">

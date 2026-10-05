@@ -33,7 +33,7 @@ export async function MessageInbox({ role, searchParams }: { role: UserRole; sea
       <Card><CardHeader><CardTitle>Konverzácie</CardTitle></CardHeader><CardContent className="space-y-3">
         {!conversations?.length && !error && <p className="text-sm text-muted-foreground">Zatiaľ nemáte žiadne konverzácie. Chat so zákazníkom alebo majstrom vznikne pri pridelení objednávky.</p>}
         {(conversations ?? []).map(item => <Link key={item.id} href={`/${role}/messages/${item.id}`} className="block rounded-lg border p-4 transition hover:bg-accent">
-          <div className="flex flex-wrap items-center gap-2"><span className="text-xs text-muted-foreground">{item.kind === "support" ? "Podpora" : "Objednávka"} · {item.status === "open" ? "Otvorené" : "Uzavreté"}</span>{item.unread_count > 0 && <span className="rounded-full bg-emerald-700 px-2 py-0.5 text-xs text-white">{item.unread_count} neprečítaných</span>}</div>
+          <div className="flex flex-wrap items-center gap-2"><span className="text-xs text-muted-foreground">{item.kind === "support" ? "Podpora" : "Objednávka"} · {item.status === "open" ? "Otvorené" : "Uzavreté"}</span>{item.unread_count > 0 && <span className="rounded-full bg-primary-strong px-2 py-0.5 text-xs text-white">{item.unread_count} neprečítaných</span>}</div>
           <p className="mt-1 font-semibold break-words">{item.subject}</p><p className="mt-1 truncate text-sm text-muted-foreground">{item.last_body ?? "Začnite konverzáciu"}</p><p className="mt-2 text-xs text-muted-foreground">{formatDateTime(item.updated_at)}</p>
         </Link>)}
         <div className="flex justify-between text-sm">{page > 1 ? <Link href={`?page=${page - 1}`}>← Novšie</Link> : <span />}{(count ?? 0) > page * 30 && <Link href={`?page=${page + 1}`}>Staršie →</Link>}</div>
@@ -62,7 +62,7 @@ export async function MessageThread({ role, params, searchParams }: { role: User
   if (!conversation) notFound();
   const { data: messages, error } = await db.from("messages").select("*").eq("conversation_id", id).order("id", { ascending: false }).limit(50);
   return <div className="mx-auto max-w-4xl space-y-4">
-    <Link href={`/${role}/messages`} className="text-sm text-emerald-800">← Všetky správy</Link>
+    <Link href={`/${role}/messages`} className="text-sm text-primary-strong">← Všetky správy</Link>
     <div className="flex flex-wrap items-center justify-between gap-4"><div><h1 className="text-2xl font-bold break-words">{conversation.subject}</h1><p className="mt-1 text-sm text-muted-foreground">{conversation.kind === "support" ? "Súkromná konverzácia s podporou" : "Chat zákazníka a prideleného majstra. Administrátor má prístup pri riešení zákazky."}</p></div>
       {conversation.kind === "support" && <form action={setSupportStatusAction}><input type="hidden" name="conversationId" value={id} /><input type="hidden" name="closed" value={String(conversation.status !== "closed")} /><SubmitButton variant="outline">{conversation.status === "closed" ? "Znovu otvoriť" : "Označiť ako vyriešené"}</SubmitButton></form>}
     </div>

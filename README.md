@@ -5,6 +5,7 @@ Platforma na objednávanie elektrikárov a inštalatérov s overenými majstrami
 ## Čo aplikácia obsahuje
 
 - Slovenské rozhranie pre zákazníka, majstra a administrátora.
+- Dodané logo FixLook a jednotná modrá farebnosť tlačidiel, navigácie, chatov a prihlasovacích stránok. Originál loga je v `public/fixlook-logo.png`.
 - Orientačné cenové rozpätie služby. Skutočná ponuka môže byť nižšia aj vyššia; zákazník najprv schvaľuje konkrétny rozsah a rozpis práce, materiálu a dopravy.
 - História ponúk, odmietnutie s poznámkou a samostatné schvaľovanie aj platenie prác navyše.
 - Chat zákazník – aktuálne pridelený majster pri objednávke, prístupný aj administrátorovi.
@@ -63,3 +64,5 @@ npm run check:config -- --database
 - [Rozsah vykonaného overenia a obmedzenia](docs/OVERENIE.md)
 
 Samotné zlúčenie kódu neznamená spustenie služby. Pred otvorením pre verejnosť je potrebné vykonať migráciu, nastaviť Stripe a SMTP, otestovať kompletný tok v testovacom prostredí a uzavrieť prevádzkové otázky.
+
+Pri `STRIPE_EXPECTED_MODE=test` sa zobrazuje upozornenie na skúšobnú prevádzku. Testovacie objednávky neslúžia na reálny výjazd.

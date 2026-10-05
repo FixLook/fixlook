@@ -85,6 +85,10 @@ Pre ostrú konfiguráciu navyše spustite `npm run check:config -- --database --
 
 Nastavte podporovaný Node.js 22 alebo 24, premenné pre správne prostredie, doménu a HTTPS. Po deploymente znova overte Auth odkazy a webhook. Veľké fotografie sa posielajú priamo do Storage, nie cez veľký payload serverovej akcie.
 
+Testovací pilot môže bežať na hlavnej doméne s `STRIPE_EXPECTED_MODE=test`; rozhranie ho výslovne označí ako skúšobnú prevádzku. Pred zmenou na live treba splniť checklist nižšie. Tajné kľúče nesprístupňujte automaticky všetkým náhľadovým vetvám. Preview bez vlastnej konfigurácie slúži iba na kontrolu verejného rozhrania.
+
+Logo v `public/fixlook-logo.png` je pôvodný dodaný súbor. Komponent `BrandLogo` zobrazí jeho slovnú značku bez vonkajších bielych okrajov pomocou rozloženia stránky; zdrojový obrázok zostáva nezmenený. Paleta v `tailwind.config.ts` používa modrú `#2BB2FF`, tmavú `#10171F` a kontrastnú modrú `#075985` pre malé texty a odkazy.
+
 ## 5. Checklist pred verejným pilotom
 
 - [ ] Záloha, skúšobná obnova a migrácia na testovacom projekte.

@@ -18,6 +18,11 @@ export default function RootLayout({
   return (
     <html lang="sk">
       <body className={`${inter.className} min-h-screen antialiased`}>
+        {process.env.STRIPE_EXPECTED_MODE === "test" && (
+          <div className="bg-primary-soft px-4 py-2 text-center text-sm text-primary-strong">
+            Testovacia prevádzka · Platby sú skúšobné. Objednávky zatiaľ neslúžia na reálny výjazd.
+          </div>
+        )}
         {children}
       </body>
     </html>

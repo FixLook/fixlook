@@ -5,10 +5,10 @@ import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 
 const steps = [
-  "Select electrician or plumber",
-  "Upload photos and describe the issue",
-  "Pay online after a verified professional accepts",
-  "Rate the completed job"
+  "Vyberte elektrikára alebo inštalatéra",
+  "Opíšte problém a pridajte fotografie",
+  "Schváľte presnú cenu a zaplaťte online",
+  "Ohodnoťte dokončenú prácu"
 ];
 
 export default function LandingPage() {
@@ -19,10 +19,10 @@ export default function LandingPage() {
           <BrandLogo className="text-white" />
           <div className="flex items-center gap-2">
             <Button asChild variant="outline" className="bg-white/90">
-              <Link href="/login">Log in</Link>
+              <Link href="/login">Prihlásiť sa</Link>
             </Button>
             <Button asChild>
-              <Link href="/register">Get Early Access</Link>
+              <Link href="/register">Vytvoriť účet</Link>
             </Button>
           </div>
         </div>
@@ -31,7 +31,7 @@ export default function LandingPage() {
       <section className="relative flex min-h-[82vh] items-end overflow-hidden pb-14 pt-28">
         <Image
           src="https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=1800&q=85"
-          alt="Electrician repairing a control panel"
+          alt="Elektrikár pri oprave rozvodnej skrine"
           fill
           priority
           className="object-cover"
@@ -41,22 +41,22 @@ export default function LandingPage() {
         <div className="relative z-10 mx-auto grid w-full max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:px-8">
           <div className="max-w-3xl text-white">
             <p className="mb-4 text-sm font-semibold uppercase tracking-wide text-primary">
-              Launching first in Kosice
+              Začíname v Košiciach
             </p>
             <h1 className="text-4xl font-bold leading-tight sm:text-6xl">
-              Find trusted professionals without making a single phone call.
+              Spoľahlivý majster. Dohodnutá cena. Bez obvolávania.
             </h1>
             <p className="mt-6 max-w-2xl text-lg text-slate-100">
-              Upload your problem, get matched with a verified expert, and solve it in a few clicks.
+              Opíšte problém, dohodnite si podrobnosti v chate a schváľte cenu od overeného majstra. Práce navyše vždy potvrdíte vopred.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Button asChild size="lg">
                 <Link href="/register">
-                  Get Early Access <ArrowRight className="h-4 w-4" />
+                  Vytvoriť účet <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="bg-white/95">
-                <Link href="/login">Open dashboard</Link>
+                <Link href="/login">Prejsť do účtu</Link>
               </Button>
             </div>
           </div>
@@ -64,18 +64,18 @@ export default function LandingPage() {
           <div className="rounded-lg border border-white/15 bg-white/95 p-5 shadow-2xl">
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">New order</p>
-                <h2 className="text-xl font-semibold text-dark">Leaking sink</h2>
+                <p className="text-sm text-muted-foreground">Nová objednávka</p>
+                <h2 className="text-xl font-semibold text-dark">Pretekajúci drez</h2>
               </div>
               <span className="rounded-full bg-primary/15 px-3 py-1 text-xs font-semibold text-emerald-700">
-                Plumber
+                Inštalatér
               </span>
             </div>
             <div className="space-y-3">
               {[
-                ["Photos uploaded", UploadCloud],
-                ["Admin matching", CheckCircle2],
-                ["Stripe payment ready", WalletCards]
+                ["Priložené fotografie", UploadCloud],
+                ["Priradenie overeného majstra", CheckCircle2],
+                ["Cena schválená zákazníkom", WalletCards]
               ].map(([label, Icon]) => (
                 <div
                   key={String(label)}

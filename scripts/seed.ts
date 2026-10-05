@@ -1,4 +1,6 @@
-import "dotenv/config";
+import { config } from "dotenv";
+config({ path: ".env.local" });
+config();
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "../src/lib/database.types";
 
@@ -18,26 +20,28 @@ const supabase = createClient<Database>(supabaseUrl, serviceRoleKey, {
 
 const services = [
   {
-    name: "Electrician",
+    name: "Elektrikár",
     description:
-      "Electrical diagnostics, repairs, sockets, switches, and small installations.",
+      "Elektroinštalácie, zásuvky, osvetlenie a drobné opravy.",
     base_price: 6000,
+    estimate_max: 15000,
     active: true
   },
   {
-    name: "Plumber",
-    description: "Leaks, clogged drains, sink, toilet, and pipe repairs.",
+    name: "Inštalatér",
+    description: "Úniky vody, batérie, odpady a drobné inštalatérske práce.",
     base_price: 5500,
+    estimate_max: 14000,
     active: true
   }
 ];
 
 const { error } = await supabase
   .from("services")
-  .upsert(services, { onConflict: "name" });
+  .upsert(services, { onConflict: "name", ignoreDuplicates: true });
 
 if (error) {
   throw error;
 }
 
-console.log("Seeded FixLook services.");
+console.log("Služby FixLook boli doplnené. Existujúce ceny zostali zachované.");

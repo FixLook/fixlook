@@ -23,7 +23,8 @@ export function formatDateTime(value: string | null | undefined) {
 
   return new Intl.DateTimeFormat("sk-SK", {
     dateStyle: "medium",
-    timeStyle: "short"
+    timeStyle: "short",
+    timeZone: "Europe/Bratislava"
   }).format(new Date(value));
 }
 
@@ -32,4 +33,9 @@ export function buildOrderNumber() {
   const random = Math.random().toString(36).slice(2, 8).toUpperCase();
 
   return `FL-${date}-${random}`;
+}
+
+export function formatEstimate(low: number | null, high?: number | null) {
+  if (low === null) return "Cena po obhliadke";
+  return high && high > low ? `${formatCurrency(low)} – ${formatCurrency(high)}` : `orientačne ${formatCurrency(low)}`;
 }

@@ -12,27 +12,27 @@ export default async function CustomerProfilePage() {
     <div className="mx-auto max-w-2xl">
       <Card>
         <CardHeader>
-          <CardTitle>Profile</CardTitle>
+          <CardTitle>Profil</CardTitle>
         </CardHeader>
         <CardContent>
           <form action={updateProfileAction} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="fullName">Full name</Label>
+              <Label htmlFor="fullName">Meno a priezvisko</Label>
               <Input id="fullName" name="fullName" defaultValue={profile.full_name} required />
             </div>
             <div className="space-y-2">
-              <Label>Email</Label>
+              <Label>E-mail</Label>
               <Input value={profile.email} disabled />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone</Label>
+              <Label htmlFor="phone">Telefón</Label>
               <Input id="phone" name="phone" defaultValue={profile.phone ?? ""} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="city">City</Label>
-              <Input id="city" name="city" defaultValue={profile.city ?? "Kosice"} required />
+              <Label htmlFor="city">Mesto</Label>
+              <Input id="city" name="city" defaultValue={profile.city ?? "Košice"} required />
             </div>
-            <SubmitButton pendingText="Saving...">Save profile</SubmitButton>
+            <SubmitButton pendingText="Ukladám…">Uložiť profil</SubmitButton>
           </form>
         </CardContent>
       </Card>

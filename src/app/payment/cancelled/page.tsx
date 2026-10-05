@@ -7,14 +7,14 @@ export default function PaymentCancelledPage() {
     <main className="flex min-h-screen items-center justify-center bg-accent px-4">
       <Card className="w-full max-w-lg bg-white text-center">
         <CardHeader>
-          <CardTitle>Payment cancelled</CardTitle>
+          <CardTitle>Platba nedokončená</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            No charge was made. You can return to the order and try again.
+            Platbu ste nedokončili. Aktuálny stav nájdete v objednávke.
           </p>
           <Button asChild>
-            <Link href="/customer/dashboard">Back to dashboard</Link>
+            <Link href="/customer/dashboard">Späť na prehľad</Link>
           </Button>
         </CardContent>
       </Card>

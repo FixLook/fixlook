@@ -1,5 +1,6 @@
 "use server";
 
+import { publicError } from "@/lib/errors";
 import { revalidatePath } from "next/cache";
 import { requireProfile } from "@/lib/auth";
 import { euroToCents, redirectWithError } from "@/lib/form";
@@ -12,17 +13,14 @@ export async function assignMasterAction(formData: FormData) {
   const masterId = String(formData.get("masterId") ?? "");
 
   if (!orderId || !masterId) {
-    redirectWithError("/admin/orders", "Select an order and professional.");
+    redirectWithError("/admin/orders", "Vyberte objednávku a majstra.");
   }
 
   const supabase = await createServerSupabaseClient();
-  const { error } = await supabase
-    .from("orders")
-    .update({ master_id: masterId, status: "assigned" })
-    .eq("id", orderId);
+  const { error } = await supabase.rpc("assign_master", { p_order: orderId, p_master: masterId });
 
   if (error) {
-    redirectWithError("/admin/orders", error.message);
+    redirectWithError("/admin/orders", publicError(error));
   }
 
   revalidatePath("/admin/orders");
@@ -35,11 +33,12 @@ export async function createServiceAction(formData: FormData) {
     name: formData.get("name"),
     description: formData.get("description"),
     basePrice: formData.get("basePrice"),
+    estimateMax: formData.get("estimateMax"),
     active: formData.get("active") === "on"
   });
 
   if (!parsed.success) {
-    redirectWithError("/admin/services", parsed.error.errors[0]?.message ?? "Invalid service.");
+    redirectWithError("/admin/services", parsed.error.errors[0]?.message ?? "Skontrolujte údaje služby.");
   }
 
   const supabase = await createServerSupabaseClient();
@@ -47,11 +46,12 @@ export async function createServiceAction(formData: FormData) {
     name: parsed.data.name,
     description: parsed.data.description,
     base_price: euroToCents(parsed.data.basePrice),
+    estimate_max: parsed.data.estimateMax === undefined ? null : euroToCents(parsed.data.estimateMax),
     active: parsed.data.active
   });
 
   if (error) {
-    redirectWithError("/admin/services", error.message);
+    redirectWithError("/admin/services", publicError(error));
   }
 
   revalidatePath("/admin/services");
@@ -68,7 +68,7 @@ export async function toggleServiceAction(formData: FormData) {
     .eq("id", serviceId);
 
   if (error) {
-    redirectWithError("/admin/services", error.message);
+    redirectWithError("/admin/services", publicError(error));
   }
 
   revalidatePath("/admin/services");
@@ -79,14 +79,23 @@ export async function updateMasterVerificationAction(formData: FormData) {
   const profileId = String(formData.get("profileId") ?? "");
   const verified = formData.get("verified") === "true";
   const supabase = await createServerSupabaseClient();
-  const { error } = await supabase
-    .from("masters")
-    .update({ verified: !verified })
-    .eq("profile_id", profileId);
+  const { error } = await supabase.rpc("verify_master", { p_master: profileId, p_verified: !verified });
 
   if (error) {
-    redirectWithError("/admin/professionals", error.message);
+    redirectWithError("/admin/professionals", publicError(error));
   }
 
   revalidatePath("/admin/professionals");
+}
+
+export async function updateServiceAction(formData: FormData) {
+  await requireProfile("admin");
+  const id = Number(formData.get("serviceId"));
+  const parsed = serviceSchema.safeParse({ name: formData.get("name"), description: formData.get("description"), basePrice: formData.get("basePrice"), estimateMax: formData.get("estimateMax"), active: formData.get("active") === "on" });
+  if (!parsed.success || !Number.isSafeInteger(id) || id < 1) redirectWithError("/admin/services", "Skontrolujte názov a rozsah cien služby.");
+  const db = await createServerSupabaseClient();
+  const { error } = await db.from("services").update({ name: parsed.data.name, description: parsed.data.description, base_price: euroToCents(parsed.data.basePrice), estimate_max: parsed.data.estimateMax === undefined ? null : euroToCents(parsed.data.estimateMax), active: parsed.data.active }).eq("id", id).select("id").single();
+  if (error) redirectWithError("/admin/services", publicError(error));
+  revalidatePath("/admin/services");
+  revalidatePath("/customer/orders/new");
 }

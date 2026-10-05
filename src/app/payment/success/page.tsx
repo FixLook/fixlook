@@ -1,3 +1,4 @@
+import { requireProfile } from "@/lib/auth";
 import Link from "next/link";
 import { CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,10 +10,11 @@ export default async function PaymentSuccessPage({
 }: {
   searchParams: Promise<{ session_id?: string }>;
 }) {
+  const profile = await requireProfile("customer");
   const { session_id: sessionId } = await searchParams;
   const result = sessionId
-    ? await confirmCheckoutSession(sessionId)
-    : { ok: false, message: "Missing checkout session." };
+    ? await confirmCheckoutSession(sessionId, profile.id)
+    : { ok: false as const, message: "Chýba odkaz na platbu." };
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-accent px-4">
@@ -21,17 +23,17 @@ export default async function PaymentSuccessPage({
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/15">
             <CheckCircle2 className="h-7 w-7 text-primary" />
           </div>
-          <CardTitle>{result.ok ? "Payment confirmed" : "Payment needs review"}</CardTitle>
+          <CardTitle>{result.ok ? "Platba potvrdená" : "Overujeme platbu"}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
             {result.ok
-              ? "Your order is now in progress."
-              : result.message ?? "Stripe did not confirm the payment."}
+              ? "Platba je zaznamenaná v objednávke. Podrobnosti realizácie si dohodnite s majstrom."
+              : result.message ?? "Platba zatiaľ nie je potvrdená."}
           </p>
           <Button asChild>
             <Link href={result.ok ? `/customer/orders/${result.orderId}` : "/customer/dashboard"}>
-              Back to FixLook
+              Späť do FixLook
             </Link>
           </Button>
         </CardContent>

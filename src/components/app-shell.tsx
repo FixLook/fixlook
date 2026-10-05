@@ -1,4 +1,6 @@
-import Link from "next/link";
+import { Suspense } from "react";
+import { RouteNotice } from "./route-notice";
+import { Navigation } from "./navigation";
 import { signOutAction } from "@/actions/auth";
 import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
@@ -32,25 +34,16 @@ export function AppShell({
               </span>
               <form action={signOutAction}>
                 <Button type="submit" variant="outline" size="sm">
-                  Sign out
+                  Odhlásiť sa
                 </Button>
               </form>
             </div>
           </div>
-          <nav className="flex gap-2 overflow-x-auto">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium text-slate-600 hover:bg-accent hover:text-dark"
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+          <Navigation items={navItems} />
         </div>
       </header>
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <Suspense><RouteNotice /></Suspense>
         {children}
       </main>
     </div>

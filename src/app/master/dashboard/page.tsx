@@ -19,7 +19,7 @@ export default async function MasterDashboardPage() {
       .select("*")
       .eq("master_id", profile.id)
       .order("created_at", { ascending: false })
-      .limit(6),
+      ,
     supabase.from("masters").select("*").eq("profile_id", profile.id).single()
   ]);
   const orders = (ordersData ?? []) as Order[];
@@ -27,38 +27,38 @@ export default async function MasterDashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-dark">Professional dashboard</h1>
+        <h1 className="text-3xl font-bold text-dark">Prehľad majstra</h1>
         <p className="mt-1 text-muted-foreground">
-          Review assigned jobs and keep your availability current.
+          Sledujte pridelené zákazky a aktualizujte svoju dostupnosť.
         </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
-        <StatCard label="Assigned orders" value={orders.length} />
+        <StatCard label="Pridelené zákazky" value={orders.length} />
         <StatCard
-          label="Accepted"
+          label="Prijaté"
           value={orders.filter((order) => order.status === "accepted").length}
         />
         <StatCard
-          label="Completed"
+          label="Dokončené"
           value={orders.filter((order) => order.status === "completed").length}
         />
-        <StatCard label="Rating" value={master?.rating_avg?.toFixed(1) ?? "0.0"} />
+        <StatCard label="Hodnotenie" value={master?.rating_avg?.toFixed(1) ?? "0.0"} />
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Latest assigned orders</CardTitle>
+          <CardTitle>Najnovšie zákazky</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="text-muted-foreground">
                 <tr>
-                  <th className="py-3">Order</th>
-                  <th className="py-3">Status</th>
-                  <th className="py-3">Estimate</th>
-                  <th className="py-3">Created</th>
+                  <th className="py-3">Objednávka</th>
+                  <th className="py-3">Stav</th>
+                  <th className="py-3">Orientačná cena</th>
+                  <th className="py-3">Vytvorené</th>
                   <th className="py-3" />
                 </tr>
               </thead>
@@ -73,7 +73,7 @@ export default async function MasterDashboardPage() {
                     <td className="py-3">{formatDateTime(order.created_at)}</td>
                     <td className="py-3 text-right">
                       <Button asChild variant="outline" size="sm">
-                        <Link href={`/master/orders/${order.id}`}>Open</Link>
+                        <Link href={`/master/orders/${order.id}`}>Otvoriť</Link>
                       </Button>
                     </td>
                   </tr>
@@ -82,7 +82,7 @@ export default async function MasterDashboardPage() {
             </table>
             {!orders.length ? (
               <p className="py-8 text-center text-sm text-muted-foreground">
-                No assigned orders yet.
+                Zatiaľ nemáte pridelené zákazky.
               </p>
             ) : null}
           </div>

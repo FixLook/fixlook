@@ -18,12 +18,15 @@ export default async function CustomerRatingsPage() {
     .not("master_id", "is", null)
     .order("completed_at", { ascending: false });
 
+  const { data: ratings } = await supabase.from("ratings").select("order_id,stars,comment").eq("customer_id", profile.id);
+  const rated = new Map((ratings ?? []).map(rating => [rating.order_id, rating]));
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-dark">Ratings</h1>
+        <h1 className="text-3xl font-bold text-dark">Hodnotenia</h1>
         <p className="mt-1 text-muted-foreground">
-          Leave feedback after a professional completes the job.
+          Podeľte sa o skúsenosť po dokončení práce.
         </p>
       </div>
 
@@ -34,10 +37,10 @@ export default async function CustomerRatingsPage() {
               <CardTitle>{order.order_number}</CardTitle>
             </CardHeader>
             <CardContent>
-              <form action={createRatingAction} className="grid gap-4 sm:grid-cols-[160px_1fr_auto]">
+              {rated.has(order.id) ? <div><p className="font-medium">Vaše hodnotenie: {rated.get(order.id)?.stars} z 5</p><p className="mt-2 text-sm">{rated.get(order.id)?.comment}</p></div> : <form action={createRatingAction} className="grid gap-4 sm:grid-cols-[160px_1fr_auto]">
                 <input type="hidden" name="orderId" value={order.id} />
                 <div className="space-y-2">
-                  <Label htmlFor={`stars-${order.id}`}>Stars</Label>
+                  <Label htmlFor={`stars-${order.id}`}>Počet hviezdičiek</Label>
                   <Select id={`stars-${order.id}`} name="stars" defaultValue="5">
                     <option value="5">5</option>
                     <option value="4">4</option>
@@ -47,20 +50,20 @@ export default async function CustomerRatingsPage() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor={`comment-${order.id}`}>Comment</Label>
+                  <Label htmlFor={`comment-${order.id}`}>Komentár</Label>
                   <Textarea id={`comment-${order.id}`} name="comment" />
                 </div>
                 <div className="flex items-end">
-                  <SubmitButton pendingText="Saving...">Submit</SubmitButton>
+                  <SubmitButton pendingText="Ukladám…">Odoslať</SubmitButton>
                 </div>
-              </form>
+              </form>}
             </CardContent>
           </Card>
         ))}
         {!orders?.length ? (
           <Card>
             <CardContent className="p-8 text-center text-sm text-muted-foreground">
-              No completed orders are ready for rating.
+              Zatiaľ nemáte dokončené objednávky na hodnotenie.
             </CardContent>
           </Card>
         ) : null}

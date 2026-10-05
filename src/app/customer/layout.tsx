@@ -2,10 +2,11 @@ import { AppShell } from "@/components/app-shell";
 import { requireProfile } from "@/lib/auth";
 
 const customerNav = [
-  { href: "/customer/dashboard", label: "Dashboard" },
-  { href: "/customer/orders/new", label: "New Order" },
-  { href: "/customer/ratings", label: "Ratings" },
-  { href: "/customer/profile", label: "Profile" }
+  { href: "/customer/dashboard", label: "Prehľad" },
+  { href: "/customer/messages", label: "Správy a podpora" },
+  { href: "/customer/orders/new", label: "Nová objednávka" },
+  { href: "/customer/ratings", label: "Hodnotenia" },
+  { href: "/customer/profile", label: "Profil" }
 ];
 
 export default async function CustomerLayout({

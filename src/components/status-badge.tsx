@@ -1,3 +1,4 @@
+import { statusLabels } from "@/lib/labels";
 import { cn } from "@/lib/utils";
 
 const statusStyles: Record<string, string> = {
@@ -29,7 +30,7 @@ export function StatusBadge({
         className
       )}
     >
-      {value.replaceAll("_", " ")}
+      {statusLabels[value] ?? statusLabels.unknown}
     </span>
   );
 }

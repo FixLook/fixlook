@@ -1,11 +1,11 @@
 "use server";
 
+import { publicError } from "@/lib/errors";
 import { revalidatePath } from "next/cache";
 import { redirectWithError } from "@/lib/form";
 import { requireProfile } from "@/lib/auth";
 import {
-  createServerSupabaseClient,
-  createServiceSupabaseClient
+  createServerSupabaseClient
 } from "@/lib/supabase/server";
 import { ratingSchema } from "@/lib/validators";
 
@@ -18,7 +18,7 @@ export async function createRatingAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    redirectWithError("/customer/ratings", parsed.error.errors[0]?.message ?? "Invalid rating.");
+    redirectWithError("/customer/ratings", parsed.error.errors[0]?.message ?? "Skontrolujte hodnotenie.");
   }
 
   const supabase = await createServerSupabaseClient();
@@ -34,7 +34,7 @@ export async function createRatingAction(formData: FormData) {
     !order.master_id ||
     order.status !== "completed"
   ) {
-    redirectWithError("/customer/ratings", "This order cannot be rated.");
+    redirectWithError("/customer/ratings", "Túto objednávku zatiaľ nemožno ohodnotiť.");
   }
 
   const { error } = await supabase.from("ratings").insert({
@@ -46,22 +46,7 @@ export async function createRatingAction(formData: FormData) {
   });
 
   if (error) {
-    redirectWithError("/customer/ratings", error.message);
-  }
-
-  const { data: ratings } = await supabase
-    .from("ratings")
-    .select("stars")
-    .eq("master_id", order.master_id);
-
-  if (ratings?.length) {
-    const ratingAvg =
-      ratings.reduce((total, rating) => total + rating.stars, 0) / ratings.length;
-
-    await createServiceSupabaseClient()
-      .from("masters")
-      .update({ rating_avg: Number(ratingAvg.toFixed(2)) })
-      .eq("profile_id", order.master_id);
+    redirectWithError("/customer/ratings", publicError(error));
   }
 
   revalidatePath("/customer/ratings");

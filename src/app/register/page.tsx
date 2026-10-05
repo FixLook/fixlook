@@ -16,13 +16,13 @@ export default async function RegisterPage({
   const params = await searchParams;
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-accent px-4 py-10">
+    <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary-soft via-accent to-white px-4 py-10">
       <Card className="w-full max-w-xl bg-white">
         <CardHeader>
           <BrandLogo />
-          <CardTitle className="pt-6">Create your FixLook account</CardTitle>
+          <CardTitle className="pt-6">Vytvorte si účet FixLook</CardTitle>
           <CardDescription>
-            Start as a customer or register as a professional.
+            Objednávajte služby ako zákazník alebo sa pridajte ako majster.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -31,15 +31,15 @@ export default async function RegisterPage({
               <Notice error={params.error} message={params.message} />
             </div>
             <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="fullName">Full name</Label>
+              <Label htmlFor="fullName">Meno a priezvisko</Label>
               <Input id="fullName" name="fullName" autoComplete="name" required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">E-mail</Label>
               <Input id="email" name="email" type="email" autoComplete="email" required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Heslo</Label>
               <Input
                 id="password"
                 name="password"
@@ -50,28 +50,28 @@ export default async function RegisterPage({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone</Label>
+              <Label htmlFor="phone">Telefón</Label>
               <Input id="phone" name="phone" autoComplete="tel" required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="city">City</Label>
-              <Input id="city" name="city" defaultValue="Kosice" required />
+              <Label htmlFor="city">Mesto</Label>
+              <Input id="city" name="city" defaultValue="Košice" required />
             </div>
             <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="role">Account type</Label>
+              <Label htmlFor="role">Typ účtu</Label>
               <Select id="role" name="role" defaultValue="customer">
-                <option value="customer">Customer</option>
-                <option value="master">Professional</option>
+                <option value="customer">Zákazník</option>
+                <option value="master">Majster</option>
               </Select>
             </div>
-            <SubmitButton className="sm:col-span-2" pendingText="Creating account...">
-              Create account
+            <SubmitButton className="sm:col-span-2" pendingText="Vytváram účet…">
+              Vytvoriť účet
             </SubmitButton>
           </form>
           <p className="mt-5 text-center text-sm text-muted-foreground">
-            Already registered?{" "}
+            Už máte účet?{" "}
             <Link href="/login" className="font-semibold text-dark">
-              Log in
+              Prihlásiť sa
             </Link>
           </p>
         </CardContent>

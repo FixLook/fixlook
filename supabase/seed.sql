@@ -1,8 +1,6 @@
-insert into public.services (name, description, base_price, active)
+-- Príklady orientačných cien. Pred spustením ich upravte podľa skutočných nákladov.
+insert into public.services (name, description, base_price, estimate_max, active)
 values
-  ('Electrician', 'Electrical diagnostics, repairs, sockets, switches, and small installations.', 6000, true),
-  ('Plumber', 'Leaks, clogged drains, sink, toilet, and pipe repairs.', 5500, true)
-on conflict (name) do update set
-  description = excluded.description,
-  base_price = excluded.base_price,
-  active = excluded.active;
+  ('Elektrikár', 'Elektroinštalácie, zásuvky, osvetlenie a drobné opravy.', 6000, 15000, true),
+  ('Inštalatér', 'Úniky vody, batérie, odpady a drobné inštalatérske práce.', 5500, 14000, true)
+on conflict (name) do nothing;

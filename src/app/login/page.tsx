@@ -15,22 +15,22 @@ export default async function LoginPage({
   const params = await searchParams;
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-accent px-4 py-10">
+    <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary-soft via-accent to-white px-4 py-10">
       <Card className="w-full max-w-md bg-white">
         <CardHeader>
           <BrandLogo />
-          <CardTitle className="pt-6">Welcome back</CardTitle>
-          <CardDescription>Log in to manage FixLook orders.</CardDescription>
+          <CardTitle className="pt-6">Vitajte späť</CardTitle>
+          <CardDescription>Prihláste sa a spravujte svoje objednávky.</CardDescription>
         </CardHeader>
         <CardContent>
           <form action={signInAction} className="space-y-4">
             <Notice error={params.error} message={params.message} />
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">E-mail</Label>
               <Input id="email" name="email" type="email" autoComplete="email" required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Heslo</Label>
               <Input
                 id="password"
                 name="password"
@@ -39,14 +39,15 @@ export default async function LoginPage({
                 required
               />
             </div>
-            <SubmitButton className="w-full" pendingText="Signing in...">
-              Log in
+            <SubmitButton className="w-full" pendingText="Prihlasujem…">
+              Prihlásiť sa
             </SubmitButton>
           </form>
+          <Link href="/forgot-password" className="mt-4 block text-sm text-primary-strong">Zabudli ste heslo?</Link>
           <p className="mt-5 text-center text-sm text-muted-foreground">
-            No account?{" "}
+            Ešte nemáte účet?{" "}
             <Link href="/register" className="font-semibold text-dark">
-              Create one
+              Zaregistrujte sa
             </Link>
           </p>
         </CardContent>

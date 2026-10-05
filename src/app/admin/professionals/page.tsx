@@ -22,9 +22,9 @@ export default async function AdminProfessionalsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-dark">Professionals management</h1>
+        <h1 className="text-3xl font-bold text-dark">Správa majstrov</h1>
         <p className="mt-1 text-muted-foreground">
-          Verify professionals and monitor readiness.
+          Overujte majstrov a spravujte ich dostupnosť.
         </p>
       </div>
 
@@ -37,26 +37,26 @@ export default async function AdminProfessionalsPage() {
               <CardHeader>
                 <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
                   <div>
-                    <CardTitle>{profile?.full_name ?? "Unnamed professional"}</CardTitle>
+                    <CardTitle>{profile?.full_name ?? "Majster bez mena"}</CardTitle>
                     <p className="mt-1 text-sm text-muted-foreground">
                       {profile?.email} - {formatCurrency(master.hourly_rate)}
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    <StatusBadge status={master.verified ? "verified" : "pending"} />
+                    <StatusBadge status={master.verified ? "verified" : "unverified"} />
                     <StatusBadge status={master.available ? "available" : "offline"} />
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                 <p className="max-w-2xl text-sm text-muted-foreground">
-                  {master.description ?? "No professional description yet."}
+                  {master.description ?? "Majster zatiaľ nevyplnil popis."}
                 </p>
                 <form action={updateMasterVerificationAction}>
                   <input type="hidden" name="profileId" value={master.profile_id} />
                   <input type="hidden" name="verified" value={String(master.verified)} />
-                  <SubmitButton variant="outline" pendingText="Saving...">
-                    {master.verified ? "Unverify" : "Verify"}
+                  <SubmitButton variant="outline" pendingText="Ukladám…">
+                    {master.verified ? "Zrušiť overenie" : "Overiť"}
                   </SubmitButton>
                 </form>
               </CardContent>

@@ -2,11 +2,12 @@ import { AppShell } from "@/components/app-shell";
 import { requireProfile } from "@/lib/auth";
 
 const adminNav = [
-  { href: "/admin/dashboard", label: "Dashboard" },
-  { href: "/admin/orders", label: "Orders" },
-  { href: "/admin/professionals", label: "Professionals" },
-  { href: "/admin/services", label: "Services" },
-  { href: "/admin/payments", label: "Payments" }
+  { href: "/admin/dashboard", label: "Prehľad" },
+  { href: "/admin/messages", label: "Správy a podpora" },
+  { href: "/admin/orders", label: "Objednávky" },
+  { href: "/admin/professionals", label: "Majstri" },
+  { href: "/admin/services", label: "Služby" },
+  { href: "/admin/payments", label: "Platby" }
 ];
 
 export default async function AdminLayout({

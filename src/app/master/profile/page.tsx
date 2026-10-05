@@ -21,39 +21,39 @@ export default async function MasterProfilePage() {
     <div className="grid gap-6 lg:grid-cols-2">
       <Card>
         <CardHeader>
-          <CardTitle>Personal profile</CardTitle>
+          <CardTitle>Osobné údaje</CardTitle>
         </CardHeader>
         <CardContent>
           <form action={updateProfileAction} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="fullName">Full name</Label>
+              <Label htmlFor="fullName">Meno a priezvisko</Label>
               <Input id="fullName" name="fullName" defaultValue={profile.full_name} required />
             </div>
             <div className="space-y-2">
-              <Label>Email</Label>
+              <Label>E-mail</Label>
               <Input value={profile.email} disabled />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone</Label>
+              <Label htmlFor="phone">Telefón</Label>
               <Input id="phone" name="phone" defaultValue={profile.phone ?? ""} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="city">City</Label>
-              <Input id="city" name="city" defaultValue={profile.city ?? "Kosice"} required />
+              <Label htmlFor="city">Mesto</Label>
+              <Input id="city" name="city" defaultValue={profile.city ?? "Košice"} required />
             </div>
-            <SubmitButton pendingText="Saving...">Save profile</SubmitButton>
+            <SubmitButton pendingText="Ukladám…">Uložiť profil</SubmitButton>
           </form>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Professional profile</CardTitle>
+          <CardTitle>Profil majstra</CardTitle>
         </CardHeader>
         <CardContent>
           <form action={updateMasterProfileAction} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description">Popis</Label>
               <Textarea
                 id="description"
                 name="description"
@@ -62,7 +62,7 @@ export default async function MasterProfilePage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="hourlyRate">Hourly rate EUR</Label>
+              <Label htmlFor="hourlyRate">Hodinová sadzba (€)</Label>
               <Input
                 id="hourlyRate"
                 name="hourlyRate"
@@ -80,12 +80,12 @@ export default async function MasterProfilePage() {
                 defaultChecked={master?.available ?? false}
                 className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
               />
-              Available for new jobs
+              Som dostupný pre nové zákazky
             </label>
             <p className="text-sm text-muted-foreground">
-              Verification status: {master?.verified ? "verified" : "waiting for admin"}
+              Stav overenia: {master?.verified ? "Overený" : "Čaká na overenie administrátorom"}
             </p>
-            <SubmitButton pendingText="Saving...">Save professional profile</SubmitButton>
+            <SubmitButton pendingText="Ukladám…">Uložiť profil majstra</SubmitButton>
           </form>
         </CardContent>
       </Card>

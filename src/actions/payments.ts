@@ -1,84 +1,78 @@
 "use server";
-
 import { redirect } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
-import { calculateCommission, getStripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import { redirectWithError } from "@/lib/form";
-import {
-  createServerSupabaseClient,
-  createServiceSupabaseClient
-} from "@/lib/supabase/server";
+import { createServerSupabaseClient, createServiceSupabaseClient } from "@/lib/supabase/server";
+import { retryFailedCheckoutSession, syncPaidCheckoutSession } from "@/lib/payments";
+import { uuidSchema } from "@/lib/validators";
+import { publicError } from "@/lib/errors";
+import { needsCheckoutReconciliation } from "@/lib/checkout";
 
-export async function createCheckoutSessionAction(formData: FormData) {
+export async function createCheckoutSessionAction(form: FormData) {
   const profile = await requireProfile("customer");
-  const orderId = String(formData.get("orderId") ?? "");
-  const supabase = await createServerSupabaseClient();
-  const { data: order, error } = await supabase
-    .from("orders")
-    .select("id, order_number, customer_id, estimated_price, final_price, services(name)")
-    .eq("id", orderId)
-    .single();
-
-  if (error || !order || order.customer_id !== profile.id) {
-    redirectWithError("/customer/dashboard", "Order was not found.");
-  }
-
-  const amount = order.final_price ?? order.estimated_price ?? 0;
-
-  if (amount < 50) {
-    redirectWithError(`/customer/orders/${order.id}`, "Order price is missing.");
-  }
-
-  const { commissionAmount, masterAmount } = calculateCommission(amount);
-  const stripe = getStripe();
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  const session = await stripe.checkout.sessions.create({
-    mode: "payment",
-    payment_method_types: ["card"],
-    customer_email: profile.email,
-    line_items: [
-      {
-        price_data: {
-          currency: "eur",
-          unit_amount: amount,
-          product_data: {
-            name: `FixLook ${order.order_number}`,
-            description: order.services?.name ?? "Home service"
-          }
-        },
-        quantity: 1
+  const parsed = uuidSchema.safeParse(form.get("paymentId"));
+  if (!parsed.success) redirectWithError("/customer/dashboard", "Neplatná platba.");
+  const db = await createServerSupabaseClient();
+  const { data: payment, error } = await db.rpc("prepare_checkout", { p_payment: parsed.data });
+  if (error || !payment) redirectWithError("/customer/dashboard", publicError(error));
+  const path = `/customer/orders/${payment.order_id}`;
+  let checkoutUrl: string | null = null;
+  let paid = false;
+  let expired = false;
+  let failed = false;
+  let needsReview = false;
+  try {
+    const stripe = getStripe();
+    const service = createServiceSupabaseClient();
+    if (payment.stripe_checkout_session_id) {
+      const existing = await stripe.checkout.sessions.retrieve(payment.stripe_checkout_session_id);
+      if (existing.payment_status === "paid") {
+        await syncPaidCheckoutSession(existing);
+        paid = true;
+      } else if (existing.status === "open") {
+        checkoutUrl = existing.url;
+      } else if (existing.status === "expired") {
+        const result = await service.rpc("reset_checkout", { p_payment: payment.id, p_attempt: payment.checkout_attempt });
+        if (result.error) throw result.error;
+        expired = true;
+      } else if (existing.status === "complete") {
+        failed = await retryFailedCheckoutSession(existing);
       }
-    ],
-    success_url: `${appUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${appUrl}/customer/orders/${order.id}`,
-    metadata: {
-      orderId: order.id,
-      customerId: profile.id,
-      commissionAmount: String(commissionAmount)
+    } else if (needsCheckoutReconciliation(payment.attempt_started_at)) {
+      // Do not discard a missing Stripe response: that session may already be paid.
+      needsReview = true;
+    } else {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+      if (!appUrl || (process.env.NODE_ENV === "production" && !appUrl.startsWith("https://"))) throw new Error("APP_URL");
+      const session = await stripe.checkout.sessions.create({
+        mode: "payment", locale: "sk",
+        integration_identifier: "fixlook-quotes-xkrmbvqa",
+        client_reference_id: payment.id,
+        line_items: [{ price_data: { currency: "eur", unit_amount: payment.amount, product_data: { name: "FixLook – schválená cenová ponuka" } }, quantity: 1 }],
+        success_url: `${appUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${appUrl}${path}`,
+        metadata: { paymentId: payment.id, quoteId: payment.quote_id!, orderId: payment.order_id, customerId: profile.id, attempt: String(payment.checkout_attempt) }
+      }, { idempotencyKey: `fixlook-payment-${payment.id}-${payment.checkout_attempt}` });
+      const attached = await service.rpc("attach_checkout", { p_payment: payment.id, p_attempt: payment.checkout_attempt, p_session: session.id });
+      if (attached.error) throw attached.error;
+      if (session.payment_status === "paid") { await syncPaidCheckoutSession(session); paid = true; }
+      else if (session.status === "expired") {
+        const reset = await service.rpc("reset_checkout", { p_payment: payment.id, p_attempt: payment.checkout_attempt });
+        if (reset.error) throw reset.error;
+        expired = true;
+      } else if (session.status === "complete") {
+        failed = await retryFailedCheckoutSession(session);
+      } else checkoutUrl = session.url;
     }
-  });
-
-  const serviceSupabase = createServiceSupabaseClient();
-
-  await serviceSupabase.from("payments").upsert(
-    {
-      order_id: order.id,
-      amount,
-      commission_amount: commissionAmount,
-      master_amount: masterAmount,
-      status: "pending"
-    },
-    { onConflict: "order_id" }
-  );
-
-  await serviceSupabase
-    .from("orders")
-    .update({ stripe_payment_status: "pending" })
-    .eq("id", order.id);
-
-  if (!session.url) {
-    redirectWithError(`/customer/orders/${order.id}`, "Stripe checkout was not created.");
+  } catch {
+    // Keep the same reservation/idempotency key after a timeout. Never overwrite a paid record.
+    redirectWithError(path, "Platbu sa nepodarilo otvoriť. Skúste to znova; schválená cena zostáva zachovaná.");
   }
-
-  redirect(session.url);
+  if (paid) redirect(path);
+  if (failed) redirectWithError(path, "Predchádzajúca platba neprešla. Kliknite znova na Zaplatiť a vyberte spôsob úhrady.");
+  if (needsReview) redirectWithError(path, "Pred ďalším pokusom musí podpora overiť stav predchádzajúcej platby. Kontaktujte podporu pri tejto objednávke; neposielajte platbu znova.");
+  if (expired) redirectWithError(path, "Platobná relácia vypršala. Kliknite znova na Zaplatiť a otvorí sa nová.");
+  if (!checkoutUrl) redirectWithError(path, "Platba sa ešte spracúva. Skúste stránku obnoviť o chvíľu.");
+  redirect(checkoutUrl);
 }

@@ -2,9 +2,10 @@ import { AppShell } from "@/components/app-shell";
 import { requireProfile } from "@/lib/auth";
 
 const masterNav = [
-  { href: "/master/dashboard", label: "Dashboard" },
-  { href: "/master/orders", label: "Assigned Orders" },
-  { href: "/master/profile", label: "Profile" }
+  { href: "/master/dashboard", label: "Prehľad" },
+  { href: "/master/messages", label: "Správy a podpora" },
+  { href: "/master/orders", label: "Moje zákazky" },
+  { href: "/master/profile", label: "Profil" }
 ];
 
 export default async function MasterLayout({

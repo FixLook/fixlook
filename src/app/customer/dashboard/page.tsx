@@ -19,50 +19,50 @@ export default async function CustomerDashboardPage() {
     .select("*")
     .eq("customer_id", profile.id)
     .order("created_at", { ascending: false })
-    .limit(6);
+    ;
   const orders = (data ?? []) as Order[];
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-3xl font-bold text-dark">Customer dashboard</h1>
+          <h1 className="text-3xl font-bold text-dark">Moje objednávky</h1>
           <p className="mt-1 text-muted-foreground">
-            Track requests from first upload to completed job.
+            Všetky vaše objednávky, schválené ceny a stav riešenia na jednom mieste.
           </p>
         </div>
         <Button asChild>
           <Link href="/customer/orders/new">
-            <Plus className="h-4 w-4" /> New Order
+            <Plus className="h-4 w-4" /> Nová objednávka
           </Link>
         </Button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <StatCard label="Total orders" value={orders.length} />
+        <StatCard label="Počet objednávok" value={orders.length} />
         <StatCard
-          label="Open orders"
-          value={orders.filter((order) => order.status !== "completed").length}
+          label="Otvorené objednávky"
+          value={orders.filter((order) => !["completed", "cancelled"].includes(order.status)).length}
         />
         <StatCard
-          label="Completed"
+          label="Dokončené"
           value={orders.filter((order) => order.status === "completed").length}
         />
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Recent orders</CardTitle>
+          <CardTitle>Vaše objednávky</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="text-muted-foreground">
                 <tr>
-                  <th className="py-3">Order</th>
-                  <th className="py-3">Status</th>
-                  <th className="py-3">Estimate</th>
-                  <th className="py-3">Created</th>
+                  <th className="py-3">Objednávka</th>
+                  <th className="py-3">Stav</th>
+                  <th className="py-3">Orientačná cena</th>
+                  <th className="py-3">Vytvorené</th>
                   <th className="py-3" />
                 </tr>
               </thead>
@@ -77,7 +77,7 @@ export default async function CustomerDashboardPage() {
                     <td className="py-3">{formatDateTime(order.created_at)}</td>
                     <td className="py-3 text-right">
                       <Button asChild variant="outline" size="sm">
-                        <Link href={`/customer/orders/${order.id}`}>Open</Link>
+                        <Link href={`/customer/orders/${order.id}`}>Otvoriť</Link>
                       </Button>
                     </td>
                   </tr>
@@ -86,7 +86,7 @@ export default async function CustomerDashboardPage() {
             </table>
             {!orders.length ? (
               <p className="py-8 text-center text-sm text-muted-foreground">
-                No orders yet.
+                Zatiaľ nemáte žiadne objednávky.
               </p>
             ) : null}
           </div>

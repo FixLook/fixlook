@@ -1,5 +1,6 @@
 "use server";
 
+import { publicError } from "@/lib/errors";
 import { revalidatePath } from "next/cache";
 import { requireProfile } from "@/lib/auth";
 import { redirectWithError } from "@/lib/form";
@@ -15,7 +16,7 @@ export async function updateProfileAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    redirectWithError(`/${profile.role}/profile`, parsed.error.errors[0]?.message ?? "Invalid profile.");
+    redirectWithError(`/${profile.role}/profile`, parsed.error.errors[0]?.message ?? "Skontrolujte údaje profilu.");
   }
 
   const supabase = await createServerSupabaseClient();
@@ -29,7 +30,7 @@ export async function updateProfileAction(formData: FormData) {
     .eq("id", profile.id);
 
   if (error) {
-    redirectWithError(`/${profile.role}/profile`, error.message);
+    redirectWithError(`/${profile.role}/profile`, publicError(error));
   }
 
   revalidatePath(`/${profile.role}/profile`);

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { assignMasterAction } from "@/actions/admin";
 import { SubmitButton } from "@/components/submit-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,9 +25,9 @@ export default async function AdminOrdersPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-dark">Orders management</h1>
+        <h1 className="text-3xl font-bold text-dark">Správa objednávok</h1>
         <p className="mt-1 text-muted-foreground">
-          Assign professionals manually and follow every order status.
+          Prideľujte overených majstrov a sledujte priebeh objednávok.
         </p>
       </div>
 
@@ -36,7 +37,7 @@ export default async function AdminOrdersPage() {
             <CardHeader>
               <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
                 <div>
-                  <CardTitle>{order.order_number}</CardTitle>
+                  <CardTitle><Link className="underline underline-offset-4" href={`/admin/orders/${order.id}`}>{order.order_number}</Link></CardTitle>
                   <p className="mt-1 text-sm text-muted-foreground">
                     {order.city} - {formatDateTime(order.created_at)} -{" "}
                     {formatCurrency(order.estimated_price)}
@@ -49,32 +50,32 @@ export default async function AdminOrdersPage() {
               <div className="space-y-2">
                 <p className="text-sm text-dark">{order.problem_description}</p>
                 <p className="text-sm text-muted-foreground">
-                  Assigned to:{" "}
+                  Pridelený majster:{" "}
                   {order.master_id
                     ? profileById.get(order.master_id)?.full_name ?? order.master_id
-                    : "not assigned"}
+                    : "Zatiaľ nepridelené"}
                 </p>
               </div>
-              <form action={assignMasterAction} className="grid gap-3 sm:grid-cols-[1fr_auto]">
+              {["new", "assigned"].includes(order.status) ? <form action={assignMasterAction} className="grid gap-3 sm:grid-cols-[1fr_auto]">
                 <input type="hidden" name="orderId" value={order.id} />
                 <div className="space-y-2">
-                  <Label htmlFor={`master-${order.id}`}>Professional</Label>
+                  <Label htmlFor={`master-${order.id}`}>Majster</Label>
                   <Select id={`master-${order.id}`} name="masterId" required>
-                    {(masterRows ?? []).map((master) => {
+                    {(masterRows ?? []).filter(master => master.verified && master.available).map((master) => {
                       const masterProfile = profileById.get(master.profile_id);
                       return (
                         <option key={master.profile_id} value={master.profile_id}>
                           {masterProfile?.full_name ?? master.profile_id}
-                          {master.verified ? " - verified" : " - unverified"}
+                          {master.verified ? " – overený" : " – neoverený"}
                         </option>
                       );
                     })}
                   </Select>
                 </div>
                 <div className="flex items-end">
-                  <SubmitButton pendingText="Assigning...">Assign</SubmitButton>
+                  <SubmitButton disabled={!(masterRows ?? []).some(master => master.verified && master.available)} pendingText="Prideľujem…">Prideliť</SubmitButton>
                 </div>
-              </form>
+              </form> : <p className="text-sm text-muted-foreground">Majstra už v tomto stave nemožno zmeniť.</p>}
             </CardContent>
           </Card>
         ))}

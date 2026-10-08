@@ -109,3 +109,18 @@ Logo v `public/fixlook-logo.png` je pôvodný dodaný súbor. Komponent `BrandLo
 - [ ] Sledovanie chýb a zlyhaných webhookov, zálohy, prístupy administrátorov a postup pri incidente.
 
 Odporúčaný ďalší krok je uzavretý pilot s niekoľkými skúšobnými zákazkami. Žiadna položka vyššie sa nepovažuje za splnenú len na základe úspešného buildu.
+
+## 6. Nezáväzný AI odhad
+
+AI odhad je voliteľný náhľad pred odoslaním objednávky. Výsledok zahŕňa rozpätie práce, materiálu a výjazdu, predpoklady, cenové faktory a doplňujúce otázky. Celková suma sa počíta na serveri v centoch. Model môže namiesto ceny odporučiť obhliadku. Odhad nevytvára cenovú ponuku, platbu ani províziu a neobmedzuje cenu navrhnutú majstrom.
+
+1. Po migráciách `001` a `002` aplikujte raz `supabase/migrations/20261008215530_ai_price_estimates.sql`. Migrácia je prídavná a nemení existujúce platby ani pravidlá provízie. Najprv ju overte na oddelenej databáze; PostgreSQL testy repozitára overujú aj nové oprávnenia a nezáväznosť odhadu.
+2. Vyberte aktuálny model s obrazovým vstupom a štruktúrovaným výstupom z [AI Gateway katalógu](https://ai-gateway.vercel.sh/v1/models). Nastavte serverový `AI_ESTIMATE_MODEL` na presný identifikátor `provider/model`. Pri prvom nasadení bol overený identifikátor `openai/gpt-6-luna`; pri zmene modelu zopakujte hodnotenie odhadov. Model nie je osobitne trénovaný ani overený na cenách slovenských opráv.
+3. Na Verceli používame automatickú OIDC autentifikáciu. Na lokálnom alebo inom hostingu nastavte serverový `AI_GATEWAY_API_KEY`. Kľúč nesmie mať prefix `NEXT_PUBLIC_`, byť v repozitári ani v logoch. Pre lokálne použitie možno použiť aj Vercel OIDC token s `VERCEL_OIDC_TOKEN` a `VERCEL=1`; rešpektujte jeho expiráciu.
+4. Overte aktivovaný AI Gateway účet, dostupné kredity a rozpočet. Prvé použitie môže vyžadovať overenie platobnej metódy vo Verceli; aplikácia ju nezakladá a kredity automaticky nedokupuje. Nastavte výdavkový limit podľa schváleného rozpočtu. Až potom nastavte `AI_ESTIMATE_ENABLED=true` v správnom prostredí a nasaďte nový build.
+5. Overte prihláseného zákazníka: odhad podľa opisu bez fotografie, odhad s fotografiou, nejasný rozsah, uloženie k objednávke a načítanie zákazníkom/prideleným majstrom/adminom. Cudzí používateľ nesmie vidieť výsledok ani ho meniť. Zmena služby, mesta, opisu či fotografie zruší náhľad. Odhad starší než 24 hodín obnovte alebo objednávku odošlite bez neho.
+6. Otestujte neplatné dáta, chýbajúce kredity, výpadok poskytovateľa a timeout. Zlyhanie AI sa nesmie vydávať za úspešný odhad. Objednávka bez AI ostáva dostupná. Rovnaký náhľad sa znovu používa 24 hodín; nové požiadavky sú obmedzené na jednu za minútu a 10 za posledných 24 hodín na zákazníka, vrátane zlyhaných pokusov. Limity sa vynucujú v databáze aj pri viacerých serveroch.
+
+Fotografie pre AI sa v prehliadači prekódujú na JPEG bez EXIF, každá najviac 200 kB. Do endpointu sa neposielajú adresa, kontaktné polia ani termín; voľný opis a obsah fotografií napriek tomu môžu obsahovať osobné údaje. Používateľ pred výpočtom vidí informáciu o odoslaní údajov AI službe cez Vercel AI Gateway. Originály sa pri objednávke naďalej ukladajú priamo do súkromného Storage. Náhľady bez objednávky sa pri ďalšom odhade toho istého zákazníka čistia po siedmich dňoch; pre striktnú lehotu zaveďte prevádzkové plánované čistenie. Posúďte spracovateľov a pravidlá uchovávania u AI služby v zásadách ochrany súkromia.
+
+Presnosť odhadu treba vyhodnotiť na reálnych dokončených zákazkách a upraviť referenčný cenník. Úspešný API test overuje pripojenie a formát výsledku, nie cenovú presnosť.

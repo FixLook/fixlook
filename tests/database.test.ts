@@ -31,6 +31,7 @@ test("PostgreSQL: quotes, payments, permissions and private conversations", asyn
   // Reproduce the extra permissive policy discovered on the hosted MVP.
   await db.exec('create policy "Allow all users to read profiles" on public.profiles for select using (true)');
   await db.exec(await readFile("supabase/migrations/002_quotes_messages_security.sql", "utf8"));
+  await db.exec(await readFile("supabase/migrations/20261008215530_ai_price_estimates.sql", "utf8"));
   for (const [id, role, name] of [[customer,"customer","Zákazník"],[master,"master","Majster"],[admin,"customer","Administrátor"],[stranger,"customer","Cudzí zákazník"],[unverified,"master","Neoverený majster"]]) {
     await db.query("insert into auth.users values ($1,$2,$3)", [id, `${id}@example.test`, JSON.stringify({ role, full_name: name })]);
   }
@@ -51,6 +52,51 @@ test("PostgreSQL: quotes, payments, permissions and private conversations", asyn
   async function scalar<T>(id: string | null, sql: string, params: unknown[] = [], role = "authenticated") {
     return (await as<{ value: T }>(id, sql, params, role))[0]?.value;
   }
+  const aiInput = [1, "Výmena kuchynskej batérie", "Košice", "a".repeat(64), 1];
+  const aiResult = { kind: "range", summary: "Bežná výmena batérie.", labor: { min: 4000, max: 6000 }, materials: { min: 5000, max: 10000 }, travel: { min: 1000, max: 2000 }, total: { min: 10000, max: 18000 }, assumptions: ["Bežný prístup."], priceFactors: ["Cena batérie."], questions: [] };
+  let aiId: string, aiOrder: string;
+  await t.test("AI results are private and only the trusted server can write prices", async () => {
+    await assert.rejects(as(null, "select public.reserve_ai_estimate($1,$2,$3,$4,$5)", aiInput, "anon"), /permission denied/);
+    await assert.rejects(as(master, "select public.reserve_ai_estimate($1,$2,$3,$4,$5)", aiInput), /zákazník/);
+    aiId = await scalar<string>(customer, "select (public.reserve_ai_estimate($1,$2,$3,$4,$5)).id as value", aiInput);
+    await assert.rejects(as(customer, "update public.ai_estimates set status='completed',result=$2,model='fake' where id=$1", [aiId, JSON.stringify(aiResult)]), /permission denied/);
+    await assert.rejects(as(customer, "delete from public.ai_estimates where id=$1", [aiId]), /permission denied/);
+    assert.equal((await as(stranger, "select * from public.ai_estimates where id=$1", [aiId])).length, 0);
+    assert.equal((await as(master, "select * from public.ai_estimates where id=$1", [aiId])).length, 0);
+    await as(null, "update public.ai_estimates set status='completed',result=$2,model='test-model' where id=$1", [aiId, JSON.stringify(aiResult)], "service_role");
+    assert.equal(await scalar<string>(customer, "select (public.reserve_ai_estimate($1,$2,$3,$4,$5)).id as value", aiInput), aiId);
+    // A different account cannot reuse someone else's completed result.
+    const foreign = await scalar<string>(stranger, "select (public.reserve_ai_estimate($1,$2,$3,$4,$5)).id as value", aiInput);
+    assert.notEqual(foreign, aiId);
+  });
+  await t.test("AI previews bind only to matching requests and never create a payment", async () => {
+    const request = crypto.randomUUID();
+    await assert.rejects(as(stranger, "select public.create_order_with_ai(1,'Výmena kuchynskej batérie','Hlavná 10','Košice',null,$1,$2)", [request, aiId]), /nezodpovedá/);
+    await assert.rejects(as(customer, "select public.create_order_with_ai(1,'Úplne iný problém','Hlavná 10','Košice',null,$1,$2)", [request, aiId]), /nezodpovedá/);
+    await assert.rejects(as(customer, "select public.create_order_with_ai(1,'Výmena kuchynskej batérie','Hlavná 10','Prešov',null,$1,$2)", [request, aiId]), /nezodpovedá/);
+    aiOrder = await scalar<string>(customer, "select public.create_order_with_ai(1,'Výmena kuchynskej batérie','Hlavná 10','Košice',null,$1,$2) as value", [request, aiId]);
+    const saved = (await as<{ estimated_price: number; estimated_price_max: number; final_price: number | null }>(customer, "select estimated_price,estimated_price_max,final_price from public.orders where id=$1", [aiOrder]))[0];
+    assert.deepEqual(saved, { estimated_price: 10000, estimated_price_max: 18000, final_price: null });
+    assert.equal(await scalar<number>(customer, "select count(*)::int as value from public.payments where order_id=$1", [aiOrder]), 0);
+    await db.query("update public.ai_estimates set created_at=now()-interval '25 hours' where id=$1", [aiId]);
+    // Idempotent retries keep the already-created order even after preview expiry.
+    assert.equal(await scalar<string>(customer, "select public.create_order_with_ai(1,'Výmena kuchynskej batérie','Hlavná 10','Košice',null,$1,$2) as value", [request, aiId]), aiOrder);
+    await assert.rejects(as(customer, "select public.create_order_with_ai(1,'Výmena kuchynskej batérie','Hlavná 10','Košice',null,$1,$2)", [crypto.randomUUID(), aiId]), /nezodpovedá/);
+    await db.query("update public.ai_estimates set created_at=now() where id=$1", [aiId]);
+  });
+  await t.test("AI request limits include failures and cached requests do not spend another slot", async () => {
+    await assert.rejects(as(customer, "select public.reserve_ai_estimate($1,$2,$3,$4,$5)", [...aiInput.slice(0,3), "b".repeat(64), 1]), /jednu minútu/);
+    await db.query("update public.ai_estimates set created_at=now()-interval '2 minutes' where customer_id=$1", [customer]);
+    for (let i=0; i<9; i++) await db.query("insert into public.ai_estimates(customer_id,service_id,problem_description,city,fingerprint,photo_count,status,created_at) values($1,1,'Ďalší problém na overenie','Košice',$2,0,'failed',now()-interval '2 minutes')", [customer, i.toString(16).repeat(64)]);
+    await assert.rejects(as(customer, "select public.reserve_ai_estimate($1,$2,$3,$4,$5)", [...aiInput.slice(0,3), "b".repeat(64), 1]), /10 AI odhadov/);
+    assert.equal(await scalar<string>(customer, "select (public.reserve_ai_estimate($1,$2,$3,$4,$5)).id as value", aiInput), aiId);
+    // Inspection-only results clear numeric catalog estimates instead of inventing one.
+    await db.query("update public.ai_estimates set created_at=now()-interval '25 hours' where customer_id=$1 and id<>$2", [customer, aiId]);
+    const inspection = await scalar<string>(customer, "select (public.reserve_ai_estimate(1,'Nejasný rozsah poškodenia','Košice',$1,0)).id as value", ["c".repeat(64)]);
+    await as(null, "update public.ai_estimates set status='completed',result=$2,model='test-model' where id=$1", [inspection, JSON.stringify({ ...aiResult, kind: "inspection", total: null, labor: null, materials: null, travel: null })], "service_role");
+    const inspectionOrder = await scalar<string>(customer, "select public.create_order_with_ai(1,'Nejasný rozsah poškodenia','Hlavná 10','Košice',null,null,$1) as value", [inspection]);
+    assert.equal(await scalar<number | null>(customer, "select estimated_price as value from public.orders where id=$1", [inspectionOrder]), null);
+  });
   await t.test("roles, verification and payment fields cannot be forged", async () => {
     assert.equal((await as(null, "select * from public.profiles", [], "anon")).length, 0);
     assert.equal((await as(stranger, "select * from public.profiles where id=$1", [customer])).length, 0);
@@ -207,5 +253,13 @@ test("PostgreSQL: quotes, payments, permissions and private conversations", asyn
     await assert.rejects(as(master,"select public.respond_to_order($1,true)",[another]),/nemožno/);
     await assert.rejects(as(customer,"select public.cancel_order($1)",[order]),/podporu/);
     assert.equal((await db.query<{public:boolean}>("select public from storage.buckets where id='order-photos'")).rows[0].public,false);
+  });
+  await t.test("the AI range never restricts professional quotes and only assigned professionals see it", async () => {
+    await as(admin, "select public.assign_master($1,$2)", [aiOrder, master]);
+    assert.equal((await as(master, "select * from public.ai_estimates where id=$1", [aiId])).length, 1);
+    assert.equal((await as(unverified, "select * from public.ai_estimates where id=$1", [aiId])).length, 0);
+    await as(master, "select public.respond_to_order($1,true)", [aiOrder]);
+    await as(master, "select public.propose_quote($1,'Oprava bez potreby novej batérie',3000,0,500)", [aiOrder]);
+    await as(master, "select public.propose_quote($1,'Výmena drahšej batérie a poškodených prívodov',15000,10000,2000)", [aiOrder]);
   });
 });

@@ -10,13 +10,18 @@ export async function createOrderAction(form: FormData) {
   await requireProfile("customer");
   const parsed = orderSchema.safeParse(Object.fromEntries(form));
   const requestId = uuidSchema.safeParse(form.get("requestId"));
+  const estimateId = form.get("aiEstimateId");
+  if (estimateId && !uuidSchema.safeParse(estimateId).success) return { error: "Obnovte AI odhad alebo objednávku odošlite bez neho." };
   if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? "Skontrolujte objednávku." };
   if (!requestId.success) return { error: "Obnovte stránku a skúste to znova." };
   let preferred: string | null;
   try { preferred = bratislavaDateTime(parsed.data.preferredDatetime ?? ""); }
   catch (error) { return { error: error instanceof Error ? error.message : "Neplatný termín." }; }
   const db = await createServerSupabaseClient();
-  const { data: id, error } = await db.rpc("create_order", { p_service: parsed.data.serviceId, p_description: parsed.data.problemDescription, p_address: parsed.data.address, p_city: parsed.data.city, p_preferred: preferred, p_request: requestId.data });
+  const args = { p_service: parsed.data.serviceId, p_description: parsed.data.problemDescription, p_address: parsed.data.address, p_city: parsed.data.city, p_preferred: preferred, p_request: requestId.data };
+  const { data: id, error } = estimateId
+    ? await db.rpc("create_order_with_ai", { ...args, p_estimate: String(estimateId) })
+    : await db.rpc("create_order", args);
   if (error || !id) return { error: publicError(error) };
   revalidatePath("/customer/dashboard");
   return { orderId: id };

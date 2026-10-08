@@ -18,7 +18,7 @@ export function BrandLogo({ className }: { className?: string }) {
           height={101}
           priority
           unoptimized
-          className="absolute -left-5 -top-8 h-[101px] w-[151px] max-w-none"
+          className="absolute -left-[25px] -top-8 h-[101px] w-[151px] max-w-none"
         />
       </span>
     </Link>

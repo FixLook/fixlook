@@ -44,8 +44,8 @@ export async function MessageInbox({ role, searchParams }: { role: UserRole; sea
           <input type="hidden" name="clientId" value={crypto.randomUUID()} />
           <input type="hidden" name="orderId" value={orderId.success ? orderId.data : ""} />
           {orderId.success && <p className="text-sm">Podnet bude pripojený k vybranej objednávke.</p>}
-          <div><Label htmlFor="support-subject">Predmet</Label><Input id="support-subject" name="subject" minLength={3} maxLength={160} required /></div>
-          <div><Label htmlFor="support-body">Čo potrebujete vyriešiť?</Label><Textarea id="support-body" name="body" maxLength={4000} rows={5} required /></div>
+          <div className="space-y-2"><Label htmlFor="support-subject">Predmet</Label><Input id="support-subject" name="subject" minLength={3} maxLength={160} required /></div>
+          <div className="space-y-2"><Label htmlFor="support-body">Čo potrebujete vyriešiť?</Label><Textarea id="support-body" name="body" maxLength={4000} rows={5} required /></div>
           <SubmitButton pendingText="Odosielam…">Odoslať podnet</SubmitButton>
         </form>
       </CardContent></Card>

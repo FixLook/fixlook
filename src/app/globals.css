@@ -3,14 +3,14 @@
 @tailwind utilities;
 
 :root {
-  --background: 0 0% 100%;
+  --background: 216 33% 98%;
   --foreground: 212 32% 9%;
   --card: 0 0% 100%;
   --card-foreground: 212 32% 9%;
-  --muted: 204 72% 97%;
-  --muted-foreground: 215 16% 47%;
-  --border: 205 36% 87%;
-  --input: 205 36% 77%;
+  --muted: 216 25% 96%;
+  --muted-foreground: 215 16% 42%;
+  --border: 214 25% 90%;
+  --input: 214 23% 85%;
   --ring: 200 90% 27%;
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 98%;
@@ -23,6 +23,55 @@
 body {
   background: hsl(var(--background));
   color: hsl(var(--foreground));
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+section[id] {
+  scroll-margin-top: 2rem;
+}
+
+.account-content h1 {
+  letter-spacing: -0.035em;
+}
+
+.account-content table {
+  border-collapse: collapse;
+}
+
+.account-content th {
+  padding-inline: 0.5rem;
+  padding-block: 0.875rem;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.account-content tbody tr {
+  transition: background-color 150ms;
+}
+
+.account-content tbody tr:hover {
+  background: hsl(var(--muted) / 0.7);
+}
+
+.account-content td {
+  padding-inline: 0.5rem;
+  padding-block: 1rem;
+}
+
+.account-content th:first-child,
+.account-content td:first-child {
+  padding-left: 0;
+}
+
+.account-content th:last-child,
+.account-content td:last-child {
+  padding-right: 0;
 }
 
 ::selection {
@@ -40,4 +89,14 @@ input,
 textarea,
 select {
   font-size: 16px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

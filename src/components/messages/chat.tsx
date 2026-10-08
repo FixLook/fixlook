@@ -64,13 +64,13 @@ export function Chat({ conversationId, userId, initialMessages, initialStatus }:
   }
   return <div className="space-y-4">
     {connectionError && <p role="status" className="text-sm text-amber-800">{connectionError}</p>}
-    <div ref={list} role="log" aria-label="Správy v konverzácii" aria-live="polite" className="h-[min(55vh,520px)] space-y-4 overflow-y-auto rounded-lg border bg-slate-50 p-4">
+    <div ref={list} role="log" aria-label="Správy v konverzácii" aria-live="polite" className="h-[min(55vh,520px)] space-y-5 overflow-y-auto rounded-2xl border bg-accent p-4 sm:p-6">
       {hasOlder && <Button type="button" variant="outline" onClick={loadOlder} disabled={loadingOlder}>{loadingOlder ? "Načítavam…" : "Staršie správy"}</Button>}
       {!messages.length && <p className="text-sm text-muted-foreground">Zatiaľ tu nie sú žiadne správy. Dohodnite si podrobnosti zákazky.</p>}
       {messages.map(message => <div key={message.id} className={`flex ${message.sender_id === userId ? "justify-end" : "justify-start"}`}>
-        <article className={`max-w-[90%] rounded-xl p-3 sm:max-w-[75%] ${message.sender_id === userId ? "bg-primary-soft text-dark" : "border bg-white"}`}>
+        <article className={`max-w-[90%] rounded-2xl px-4 py-3.5 sm:max-w-[75%] ${message.sender_id === userId ? "rounded-br-sm bg-primary-soft text-dark" : "rounded-bl-sm border bg-white shadow-card"}`}>
           <p className="text-xs font-semibold">{message.is_system ? "Udalosť objednávky · " : ""}{message.sender_id === userId ? "Vy" : message.sender_name} · {roles[message.sender_role]}</p>
-          <p className="mt-1 whitespace-pre-wrap break-words text-sm [overflow-wrap:anywhere]">{message.body}</p>
+          <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed [overflow-wrap:anywhere]">{message.body}</p>
           <time dateTime={message.created_at} className="mt-2 block text-xs text-muted-foreground">{formatDateTime(message.created_at)}</time>
         </article>
       </div>)}

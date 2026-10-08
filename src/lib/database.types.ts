@@ -19,6 +19,12 @@ export type PaymentStatus = "pending" | "paid" | "refunded";
 export type Database = {
   public: {
     Tables: {
+      ai_estimates: {
+        Row: AiEstimateRow;
+        Insert: never;
+        Update: { status?: "pending" | "completed" | "failed"; result?: Json; model?: string };
+        Relationships: [];
+      };
       order_quotes: ReadTable<Quote>;
       conversations: ReadTable<Conversation>;
       messages: ReadTable<Message>;
@@ -141,6 +147,7 @@ export type Database = {
           status: OrderStatus;
           estimated_price: number | null;
           estimated_price_max: number | null;
+          ai_estimate_id: string | null;
           client_request_id: string | null;
           final_price: number | null;
           commission_amount: number | null;
@@ -345,6 +352,8 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      reserve_ai_estimate: { Args: { p_service: number; p_description: string; p_city: string; p_fingerprint: string; p_photo_count: number }; Returns: AiEstimateRow };
+      create_order_with_ai: { Args: { p_service: number; p_description: string; p_address: string; p_city: string; p_preferred?: string | null; p_request?: string | null; p_estimate?: string | null }; Returns: string };
       attach_order_photo: { Args: { p_order: string; p_path: string }; Returns: undefined };
       create_order: { Args: { p_service: number; p_description: string; p_address: string; p_city: string; p_preferred?: string | null; p_request?: string | null }; Returns: string };
       assign_master: { Args: { p_order: string; p_master: string }; Returns: undefined };
@@ -378,6 +387,11 @@ export type Database = {
 
 
 type ReadTable<T> = { Row: T; Insert: never; Update: never; Relationships: [] };
+export type AiEstimateRow = {
+  id: string; customer_id: string; service_id: number; problem_description: string; city: string;
+  fingerprint: string; photo_count: number; status: "pending" | "completed" | "failed";
+  result: Json | null; model: string | null; created_at: string;
+};
 export type Quote = {
   id: string; order_id: string; created_by: string; kind: "initial" | "extra";
   scope: string; labor_amount: number; materials_amount: number; travel_amount: number; total_amount: number;

@@ -5,11 +5,12 @@ import { estimateInputSchema, aiEstimateResultSchema, readEstimateBody, type Est
 import { decodeEstimateImage, estimateFingerprint, generatePriceEstimate, isAiEstimateEnabled } from "@/lib/ai-estimate-server";
 import { publicError } from "@/lib/errors";
 import type { Json } from "@/lib/database.types";
+import { classifyEstimateError, type EstimateErrorCode } from "@/lib/ai-estimate-error";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 const headers = { "Cache-Control": "private, no-store" };
-const failure = (error: string, status: number) => NextResponse.json({ error }, { status, headers });
+const failure = (error: string, status: number, details?: { errorCode: EstimateErrorCode; estimateId: string }) => NextResponse.json({ error, ...details }, { status, headers });
 
 export async function POST(request: Request) {
   // Cookie-authenticated paid computation must be explicitly requested on our site.
@@ -38,8 +39,9 @@ export async function POST(request: Request) {
     if (!parsed.success) return failure("Uložený odhad sa nepodarilo načítať. Kontaktujte podporu.", 503);
     return NextResponse.json({ estimateId: attempt.id, result: parsed.data, createdAt: attempt.created_at, photoCount: attempt.photo_count } satisfies EstimateResponse, { headers });
   }
-  const serverDb = createServiceSupabaseClient();
+  let serverDb: ReturnType<typeof createServiceSupabaseClient> | undefined;
   try {
+    serverDb = createServiceSupabaseClient();
     const result = await generatePriceEstimate(input, service);
     const { error: saveError } = await serverDb.from("ai_estimates").update({
       status: "completed", result: result as Json, model: process.env.AI_ESTIMATE_MODEL!
@@ -47,10 +49,10 @@ export async function POST(request: Request) {
     if (saveError) throw new Error("Estimate persistence failed");
     return NextResponse.json({ estimateId: attempt.id, result, createdAt: attempt.created_at, photoCount: input.images.length } satisfies EstimateResponse, { headers });
   } catch (error) {
-    await serverDb.from("ai_estimates").update({ status: "failed" }).eq("id", attempt.id).eq("customer_id", profile.id).eq("status", "pending");
+    if (serverDb) await serverDb.from("ai_estimates").update({ status: "failed" }).eq("id", attempt.id).eq("customer_id", profile.id).eq("status", "pending");
     // Provider exceptions may include the entire request and private photographs.
-    const errorCode = error instanceof Error ? ["customer_verification_required", "insufficient_funds", "quota_for_entity_exceeded"].find(code => error.message.includes(code)) : undefined;
-    console.error("AI estimate failed", { estimateId: attempt.id, errorType: error instanceof Error ? error.name : "Unknown", errorCode: errorCode ?? "provider_or_validation_failed" });
-    return failure("AI odhad sa teraz nepodaril. Skúste to neskôr alebo odošlite objednávku bez odhadu.", 503);
+    const errorCode = classifyEstimateError(error);
+    console.error("AI estimate failed", { estimateId: attempt.id, errorCode });
+    return failure("AI odhad sa teraz nepodaril. Skúste to neskôr alebo odošlite objednávku bez odhadu.", 503, { errorCode, estimateId: attempt.id });
   }
 }

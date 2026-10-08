@@ -17,8 +17,8 @@ export function StatCard({
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="text-3xl font-bold text-dark">{value}</div>
-        {helper ? <p className="mt-1 text-sm text-muted-foreground">{helper}</p> : null}
+        <div className="text-3xl font-semibold tracking-tight text-dark tabular-nums sm:text-4xl">{value}</div>
+        {helper ? <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{helper}</p> : null}
       </CardContent>
     </Card>
   );

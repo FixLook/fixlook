@@ -25,7 +25,7 @@ const config: Config = {
         },
         dark: "#10171F",
         accent: {
-          DEFAULT: "#F0F8FD",
+          DEFAULT: "#F5F7FA",
           foreground: "#10171F"
         },
         muted: {
@@ -42,9 +42,16 @@ const config: Config = {
         }
       },
       borderRadius: {
-        lg: "0.5rem",
-        md: "0.375rem",
-        sm: "0.25rem"
+        lg: "1rem",
+        md: "0.75rem",
+        sm: "0.5rem",
+        xl: "1.25rem",
+        "2xl": "1.5rem",
+        "3xl": "2rem"
+      },
+      boxShadow: {
+        card: "0 2px 8px -4px rgb(16 23 31 / 0.08), 0 12px 32px -24px rgb(16 23 31 / 0.12)",
+        float: "0 20px 60px -20px rgb(16 23 31 / 0.2)"
       }
     }
   },

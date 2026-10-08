@@ -33,7 +33,7 @@ export default async function MasterDashboardPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Pridelené zákazky" value={orders.length} />
         <StatCard
           label="Prijaté"

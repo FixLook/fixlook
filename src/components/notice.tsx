@@ -14,8 +14,8 @@ export function Notice({
       role={error ? "alert" : "status"}
       className={
         error
-          ? "rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700"
-          : "rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700"
+          ? "rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm leading-relaxed text-rose-800"
+          : "rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-relaxed text-emerald-800"
       }
     >
       {error ?? message}

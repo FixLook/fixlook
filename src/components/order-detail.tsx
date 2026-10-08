@@ -94,8 +94,8 @@ export async function OrderDetail({ role, params, searchParams }: { role: UserRo
       </article>)}
       {canPropose && !hasError && <form action={proposeQuoteAction} className="space-y-4 rounded-xl bg-accent p-4 sm:p-5">
         <h3 className="font-semibold">{order.status === "in_progress" ? "Navrhnúť práce navyše" : "Pripraviť cenovú ponuku"}</h3><input type="hidden" name="orderId" value={id} />
-        <div><Label htmlFor="quote-scope">Presný rozsah prác, materiál a podmienky</Label><Textarea id="quote-scope" name="scope" minLength={10} maxLength={4000} required placeholder="Čo cena zahŕňa, čo treba opraviť a aké práce vykonáte…" /></div>
-        <div className="grid gap-4 sm:grid-cols-3">{[["labor", "Práca (€)"], ["materials", "Materiál (€)"], ["travel", "Doprava (€)"]].map(([name,label]) => <div key={name}><Label htmlFor={`quote-${name}`}>{label}</Label><Input id={`quote-${name}`} name={name} type="text" inputMode="decimal" defaultValue={name === "labor" ? "" : "0"} required /></div>)}</div>
+        <div className="space-y-2"><Label htmlFor="quote-scope">Presný rozsah prác, materiál a podmienky</Label><Textarea id="quote-scope" name="scope" minLength={10} maxLength={4000} required placeholder="Čo cena zahŕňa, čo treba opraviť a aké práce vykonáte…" /></div>
+        <div className="grid gap-4 sm:grid-cols-3">{[["labor", "Práca (€)"], ["materials", "Materiál (€)"], ["travel", "Doprava (€)"]].map(([name,label]) => <div key={name} className="space-y-2"><Label htmlFor={`quote-${name}`}>{label}</Label><Input id={`quote-${name}`} name={name} type="text" inputMode="decimal" defaultValue={name === "labor" ? "" : "0"} required /></div>)}</div>
         <p className="text-xs text-muted-foreground">Uveďte konečné sumy vrátane daní a poplatkov. Aktívnu neschválenú ponuku nahradí táto nová ponuka; história zostane zachovaná.</p>
         <SubmitButton pendingText="Odosielam ponuku…">Poslať zákazníkovi na schválenie</SubmitButton>
       </form>}

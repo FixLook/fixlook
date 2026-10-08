@@ -3,6 +3,9 @@ import { createHash } from "node:crypto";
 import { generateText, Output } from "ai";
 import { AI_PROMPT_VERSION, MAX_AI_IMAGE_BYTES, modelEstimateSchema, normalizeEstimate, type EstimateInput } from "@/lib/ai-estimate";
 
+// Keep the stronger model's reasoning within the interactive time/token budget.
+const ESTIMATE_REASONING = "low" as const;
+
 export function isAiEstimateEnabled() {
   return process.env.AI_ESTIMATE_ENABLED === "true" && !!process.env.AI_ESTIMATE_MODEL &&
     (!!process.env.AI_GATEWAY_API_KEY || process.env.VERCEL === "1");
@@ -18,7 +21,7 @@ export function decodeEstimateImage(value: string) {
 }
 
 export function estimateFingerprint(input: EstimateInput, service: { base_price: number; estimate_max: number | null; name: string; description: string | null }) {
-  return createHash("sha256").update(JSON.stringify({ ...input, service, version: AI_PROMPT_VERSION, model: process.env.AI_ESTIMATE_MODEL })).digest("hex");
+  return createHash("sha256").update(JSON.stringify({ ...input, service, version: AI_PROMPT_VERSION, model: process.env.AI_ESTIMATE_MODEL, reasoning: ESTIMATE_REASONING })).digest("hex");
 }
 
 export async function generatePriceEstimate(input: EstimateInput, service: { name: string; description: string | null; base_price: number; estimate_max: number | null }) {
@@ -27,6 +30,7 @@ export async function generatePriceEstimate(input: EstimateInput, service: { nam
   const images = input.images.map(decodeEstimateImage);
   const { output } = await generateText({
     model,
+    reasoning: ESTIMATE_REASONING,
     output: Output.object({ schema: modelEstimateSchema, name: "fixlook_price_estimate" }),
     maxOutputTokens: 3000,
     maxRetries: 0,

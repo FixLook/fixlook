@@ -124,3 +124,11 @@ AI odhad je voliteľný náhľad pred odoslaním objednávky. Výsledok zahŕňa
 Fotografie pre AI sa v prehliadači prekódujú na JPEG bez EXIF, každá najviac 200 kB. Do endpointu sa neposielajú adresa, kontaktné polia ani termín; voľný opis a obsah fotografií napriek tomu môžu obsahovať osobné údaje. Používateľ pred výpočtom vidí informáciu o odoslaní údajov AI službe cez Vercel AI Gateway. Originály sa pri objednávke naďalej ukladajú priamo do súkromného Storage. Náhľady bez objednávky sa pri ďalšom odhade toho istého zákazníka čistia po siedmich dňoch; pre striktnú lehotu zaveďte prevádzkové plánované čistenie. Posúďte spracovateľov a pravidlá uchovávania u AI služby v zásadách ochrany súkromia.
 
 Presnosť odhadu treba vyhodnotiť na reálnych dokončených zákazkách a upraviť referenčný cenník. Úspešný API test overuje pripojenie a formát výsledku, nie cenovú presnosť.
+
+### Silnejší model pre pilot (9. október 2026)
+
+Pre pilot je vybraný `openai/gpt-6.1-sol`. Jeho obrazový vstup, štruktúrovaný výstup a dostupnosť boli overené v aktuálnom AI Gateway katalógu a [dokumentácii OpenAI](https://developers.openai.com/api/docs/models/gpt-6.1-sol). Server nastavuje `reasoning: low`, limit 3 000 výstupných tokenov a 45-sekundový timeout. Konfigurácia modelu aj uvažovania je súčasťou odtlačku odhadu, aby sa nepoužil náhľad zo staršej konfigurácie.
+
+Základná cena pri výbere bola 2 USD za milión vstupných a 10 USD za milión výstupných tokenov. Modelový odhad s 10 000 vstupnými a 2 000 výstupnými tokenmi stojí 0,04 USD. Nie je to nameraný priemer; započítajte fotografie a účtované tokeny uvažovania a sledujte skutočnú spotrebu. Zmena modelu neaktivuje účet ani nedokupuje kredity.
+
+Sol je všeobecný multimodálny model, nie model osobitne trénovaný na slovenské ceny opráv. Pred vyhlásením vyššej presnosti porovnajte jeho výsledky s Luna na rovnakých zákazkách, fotografiách a overených konečných cenách. Sledujte pokrytie skutočnej ceny navrhnutým rozpätím, šírku rozpätia, potrebu obhliadky, náklad a trvanie. Cenový základ spresňujte podľa overených cien práce, doloženého materiálu a výjazdu v jednotlivých lokalitách; tieto údaje ešte nie sú samostatným cenníkom v AI službe.

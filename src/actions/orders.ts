@@ -12,7 +12,7 @@ export async function createOrderAction(form: FormData) {
   const requestId = uuidSchema.safeParse(form.get("requestId"));
   const estimateId = form.get("aiEstimateId");
   if (estimateId && !uuidSchema.safeParse(estimateId).success) return { error: "Obnovte AI odhad alebo objednávku odošlite bez neho." };
-  if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? "Skontrolujte objednávku." };
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Skontrolujte objednávku." };
   if (!requestId.success) return { error: "Obnovte stránku a skúste to znova." };
   let preferred: string | null;
   try { preferred = bratislavaDateTime(parsed.data.preferredDatetime ?? ""); }

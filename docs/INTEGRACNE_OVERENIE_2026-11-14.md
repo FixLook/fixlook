@@ -79,3 +79,32 @@ Na existujúcom Vercel projekte sú pridané **výhradne branch-scoped Preview**
 5. Dotiahnuť bezpečnostnú revíziu privilegovaných RPC, Storage a Auth nastavení; odovzdať na schválenie produkčnú migráciu s plánom zálohy a rollbacku.
 
 **Záver: Draft PR #4 a NO-GO pre produkciu.** Žiadny merge do `master`, žiadna migrácia na produkčnej databáze, žiadne ostré platby.
+
+
+## 7. Pokračovanie – testovanie Auth / Stripe Preview (14. 11. 2026)
+
+### Izolované nastavenia – vykonané
+- Supabase testovací ref zostáva `qbanxjoumugikkcbxons` (oddelený od produkcie).
+- Branch-scoped Vercel Preview env premenné: testovací `NEXT_PUBLIC_SUPABASE_URL`, testovací verejný kľúč, `NEXT_PUBLIC_APP_URL` pre izolovaný alias, `STRIPE_EXPECTED_MODE=test`, `STRIPE_WEBHOOK_SECRET` (encrypted), `AI_ESTIMATE_ENABLED=false`.
+- Nový samostatný Stripe webhook v **sandbox/test režime** `we_1UbeMCHvHV477Z2M58E1jOXN` smeruje na branch Preview alias `https://fixlook-git-fix-audit-p0-middleware-79ea32-fix-look-s-projects.vercel.app/api/stripe/webhook`.
+- Pomocný prvý testovací webhook `we_1UbeLCHvHV477Z2MmuiBA5Ew` je vypnutý, aby nespôsoboval duplicity.
+- Produkčný endpoint `https://fixlook.vercel.app/api/stripe/webhook` (`we_1UNIM8HvHV477Z2MBZv0ULTW`) bol **ponechaný bez zmeny**.
+- Výslovne sa nekopírovali produkčné service-role kľúče ani Stripe API tajomstvá do Preview.
+
+### Skutočne vykonané HTTP testy
+- Nový Git-based Vercel Preview deployment `dpl_3gWkjHujnjVm9PgU49R1fdfd3shQ`: **READY** po pridaní oddelených Preview premenných.
+- Po dočasnom zapnutí prístupu iba pre branch Preview alias: `GET /` → HTTP **200**; `GET /login` → **200**.
+- `POST /api/stripe/webhook` bez podpisu → HTTP **400** (`Chýba podpis.`).
+- `POST /api/stripe/webhook` s neplatným podpisom → HTTP **400** (`Neplatný podpis.`).
+- `GET /customer/dashboard` bez relácie → HTTP **307** na prihlasovanie.
+- Z bezpečnostných dôvodov bol po testoch **prístup bez Vercel SSO cez branch alias zrušený**. Nový testovací Stripe webhook bol **deaktivovaný**, kým nebude pripravená samostatná testovacia autentifikácia a reálny Stripe test API kľúč. Pred E2E doručením ho bude potrebné dočasne aktivovať spolu s bezpečným prístupom k Preview.
+
+### Blokátory na skutočné úspešné platby / prihlasovanie
+1. Štyri syntetické profily v testovacej databáze vznikli SQL, ale nemajú plne zaregistrované Supabase Auth heslové identity. Priamy pokus o registráciu s rezervovanými testovacími e-mailovými doménami vrátil `email_address_invalid`. Priama úprava interných Auth tabuliek pre heslá nie je schváleným postupom. Treba vytvoriť **kontrolované testovacie e-mailové schránky** a účty cez podporovaný Supabase Auth API / admin UI.
+2. V branch Preview zatiaľ **chýba testovací serverový `STRIPE_SECRET_KEY`**. Bez neho aplikácia neotvorí reálny Stripe Checkout ani nedokončí podpísané webhookové spracovanie. Prístup ku Stripe sandbox cez konektor **nie je totožný** s dostupnosťou jeho API tajomstva pre aplikáciu. Kľúč zadať priamo ako šifrovanú branch-scoped Preview environment premennú, nikdy do GitHubu ani do chatu.
+3. Pre súkromné serverové operácie aplikácie chýba **testovací `SUPABASE_SERVICE_ROLE_KEY`**, tiež sa má bezpečne zadať priamo do Vercel Preview a musí patriť výhradne k `qbanxjoumugikkcbxons`.
+4. Stále nie je overená reálna úspešná signed Stripe udalosť, Checkout, refundácia cez Stripe API, browser-flow s reláciou ani Storage s prihláseným používateľom.
+
+**Dôležité rozlíšenie:** Tento HTTP smoke test potvrdzuje ochranu endpointov a dostupnosť verejných trás, **nie** kompletné E2E prijatie platby. Stripe webhook bol vytvorený, ale zámerne ponechaný **vypnutý** až do zabezpečenia testovacích kľúčov.
+
+**Produkcia bez zmien:** Žiadny merge do master, žiadne produkčné migrácie, žiadny zásah do existujúcich zákazníckych údajov alebo pôvodného Stripe webhooku.

@@ -33,7 +33,7 @@ test("FixLook commission applies to labor only and requires explicit configurati
     "supabase/migrations/001_init.sql",
     "supabase/migrations/002_quotes_messages_security.sql",
     "supabase/migrations/20261008215530_ai_price_estimates.sql",
-    "supabase/migrations/20261114_commission_from_labor.sql"
+    "supabase/migrations/20261114092802_commission_from_labor.sql"
   ]) {
     await db.exec(await readFile(migration, "utf8"));
   }

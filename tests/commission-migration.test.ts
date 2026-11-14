@@ -78,6 +78,7 @@ test("FixLook commission applies to labor only and requires explicit configurati
   await as(master, "select public.respond_to_order($1,true)", [orderId]);
 
   await t.test("unconfigured rate rejects approval without creating payment", async () => {
+    await db.exec("delete from public.platform_commission_settings");
     const quote = await priceQuote(10000, 4000, 1000);
     await assert.rejects(
       as(customer, "select public.respond_to_quote($1,true)", [quote]),
@@ -89,14 +90,14 @@ test("FixLook commission applies to labor only and requires explicit configurati
     assert.equal(payments.rows[0].count, 0);
   });
 
-  await t.test("10% on labor, excluding materials and travel", async () => {
-    await db.exec("insert into public.platform_commission_settings(singleton,commission_rate_bps) values(true,1000)");
+  await t.test("approved 15% on labor, excluding materials and travel", async () => {
+    await db.exec("insert into public.platform_commission_settings(singleton,commission_rate_bps) values(true,1500)");
     const quote = (await db.query<{ id: string }>("select id from public.order_quotes where order_id=$1 and status='proposed'", [orderId])).rows[0].id;
     await as(customer, "select public.respond_to_quote($1,true)", [quote]);
     const payment = (await db.query<{ amount: number; commission_amount: number; master_amount: number }>(
       "select amount,commission_amount,master_amount from public.payments where quote_id=$1", [quote]
     )).rows[0];
-    assert.deepEqual(payment, { amount: 15000, commission_amount: 1000, master_amount: 14000 });
+    assert.deepEqual(payment, { amount: 15000, commission_amount: 1500, master_amount: 13500 });
   });
   await t.test("only trusted operator can change the rate", async () => {
     await assert.rejects(
@@ -113,7 +114,6 @@ test("FixLook commission applies to labor only and requires explicit configurati
     await as(customer, "select public.prepare_checkout($1)", [payment.id]);
     await db.query("select public.attach_checkout($1,0,'cs_test_1')", [payment.id]);
     await db.query("select public.settle_checkout($1,0,'cs_test_1','pi_test_1',15000,'eur')", [payment.id]);
-    await db.exec("update public.platform_commission_settings set commission_rate_bps=1500");
     const quote = await priceQuote(2000, 5000, 500);
     await as(customer, "select public.respond_to_quote($1,true)", [quote]);
     const extra = (await db.query<{ amount: number; commission_amount: number; master_amount: number }>(

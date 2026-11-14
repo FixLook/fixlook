@@ -1,35 +1,81 @@
-# FixLook — izolované integračné overenie (14. 11. 2026)
+# FixLook – izolované integračné overenie MVP
+**Dátum:** 14. november 2026  
+**Stav:** pracovná vetva `fix/audit-p0-middleware-commission`, PR #4 (Draft), **bez produkčného nasadenia**.
 
-## Rozsah a bezpečnostné hranice
+## 1. Samostatné testovacie prostredie
 
-Overenie prebehlo len na vetve `fix/audit-p0-middleware-commission`, commit `6bd96f59ce66aee36f7778c28926427f87b7655a`, v krátkodobom Vercel Sandboxe so zdrojmi z GitHubu. Sandbox nemal produkčné Supabase ani Stripe kľúče. Produkčný Supabase, Stripe, Vercel Production a vetva `master` neboli zmenené.
+- **Supabase testovací projekt:** `fixlook-integration-test-20261114`, ref `qbanxjoumugikkcbxons`, región `eu-west-1`, stav `ACTIVE_HEALTHY`.
+- **Produkčný ref, na ktorý sa nesmie zapisovať:** `pjpnbmtfvlemgecoycot`.
+- Schválená ponuka vytvorenia testovacieho projektu: **0 USD/mesiac**; nebol vytvorený priebežne spoplatnený Supabase branch.
+- Testovací projekt je samostatný, bez kopírovania produkčných zákazníckych údajov.
+- Úspešne vykonané migrácie **iba na testovacom projekte**: `001_init.sql`, `002_quotes_messages_security.sql`, `20261008215530_ai_price_estimates.sql`, `20261114092802_commission_from_labor.sql`, `20261114115000_restrict_anon_admin_rpc.sql`.
+- 13 aplikačných tabuliek v `public` má RLS; testovacia konfigurácia provízie je **1500 basis points = 15 % výhradne z práce**. Bucket `order-photos` je súkromný.
+- Dve syntetické služby a štyri syntetické používateľské profily boli vytvorené **iba v testovacej databáze**. Používatelia boli vložení SQL pre testovanie databázových rolí, **nie sú to overené účty pre reálne prihlasovanie cez Supabase Auth**.
 
-### Výsledky — skutočne vykonané
-- `npm ci` — **PASS**, čistá inštalácia.
-- `npm run lint` — **PASS**.
-- `npm run typecheck` — **PASS**.
-- `npm test` — **PASS 32/32**.
-- `npm run build` — **PASS**.
-- `npm audit` — **PASS, 0 hlásených zraniteľností v okamihu testu**.
-- PGlite databázové integračné testy: vytvorenie objednávky, pridelenie overeného majstra, cenové ponuky, výslovný súhlas zákazníka, 15 % provízia iba z práce, samostatné schválenie práce navyše, zablokovanie neoprávnených rolí, chat, izolácia údajov, simulované účtovanie a refundácia — **PASS v izolovanej databáze**.
-- Stripe SDK podpis: lokálne podpísaný testovací event sa verifikuje, zmenený payload sa odmietne — **PASS bez sieťových požiadaviek**. Toto nie je test reálneho Stripe webhook doručenia do FixLook.
+## 2. Skutočne vykonané testy databázy a API
 
-### Zistenia — čo bráni skutočnému HTTP E2E testu
+### Objednávkový tok – izolovaný PostgreSQL (PASS)
 
-1. Supabase nemá žiadnu samostatnú vývojovú vetvu. Nová vetva by stála **0,01344 USD/h**, samostatný projekt má od Supabase ponuku **0 USD/mesiac**. Pokus vytvoriť nový projekt `fixlook-integration-test-20261114` bol **odmietnutý požiadavkou na samostatné potvrdenie ceny (confirmation ID)**. Bez výslovného potvrdenia v konverzácii nebolo vytvorenie opakované.
-2. Vercel projekt `fixlook`: potrebné aplikačné premenné vrátane Supabase a Stripe sú nastavené **iba pre Production**, nie pre Preview. Preview build `READY` nie je dôkaz funkčného prihlásenia ani integrácie.
-3. Jediný nájdený Stripe testovací webhook endpoint je **povolený**, ale smeruje na `https://fixlook.vercel.app/api/stripe/webhook`, teda produkčnú doménu. Testovacie udalosti tam zámerne neboli poslané — mohli by spôsobiť zápis do existujúcej produkčnej databázy.
-4. Stripe sandbox má `livemode=false`; pri čítaní v čase testu neboli v zozname posledných udalostí dostupné žiadne udalosti. **Nevytvorili sme žiadne Stripe Checkout session, platby ani refundácie.**
-5. Privilegované produkčné RPC a pravidlá Storage neboli napádané aktívnymi požiadavkami proti produkcii. Existujúce PGlite testy sú užitočné, ale nenahrádzajú testy produkčného Supabase Auth, Storage API alebo HTTP webhooku.
+1. Zákazník vytvoril objednávku, administrátor pridelil overeného remeselníka, remeselník ju prijal.
+2. Ponuka: **práca 100,00 €**, materiál 40,00 €, výjazd 10,00 €. Súčet 150,00 €. Zákazník explicitne schválil; platobný záznam obsahuje **províziu 15,00 €**, podiel remeselníka 135,00 €.
+3. Cudzí zákazník ani remeselník nemohli schváliť zákazníkovu ponuku; cudzí zákazník nevidel objednávku ani platbu a nemohol prideliť remeselníka.
+4. Po **simulovanom** potvrdení prvej platby: samostatná ponuka práce navyše 20,00 € + materiál 50,00 € + výjazd 5,00 € = 75,00 €. Zákazník ju schválil. Provízia z tejto ponuky je **3,00 €**.
+5. Bez vybavenia dodatočnej ponuky nebolo možné dokončiť objednávku. Po **simulovanom** zaplatení aj druhej ponuky skončila objednávka `completed`, konečná cena **225,00 €**, celková provízia **18,00 €**.
+6. Opakované potvrdenie rovnakej simulovanej Checkout relácie nespôsobilo druhú platbu.
+7. Neoprávnený zákazník nesmel čítať ani posielať správy do cudzieho chatu; zákazník objednávky mohol poslať správu, pridelený remeselník ju videl.
+8. Iba privilegovaná servisná rola mohla spustiť **simulovanú** čiastočnú refundáciu. Zákazník dostal pri pokuse `permission denied`.
 
-## Odporúčané ďalšie kroky (bez zásahu do produkcie)
+**Dôležité:** `cs_test_fixlook_...` a `pi_test_fixlook_...` boli **syntetické identifikátory zapísané iba v testovacej databáze**. Stripe Checkout, skutočné platby, refundácie ani webhook doručenie sa **neuskutočnili**.
 
-1. Po explicitnom schválení Supabase cenovej ponuky 0 USD/mesiac vytvoriť **samostatný projekt**, nie spoplatnenú vetvu, pokiaľ sa cena nezmení.
-2. Najprv na testovacom projekte aplikovať migrácie `001_init.sql`, `002_quotes_messages_security.sql`, `20261008215530_ai_price_estimates.sql`, `20261114092802_commission_from_labor.sql`; nahradiť/oddeliť testovacie identity a dáta.
-3. Pripraviť samostatnú konfiguráciu Vercel Preview viazanú len na pracovnú vetvu a výhradne na testovací Supabase ref. Pred testom overiť, že žiadny service-role kľúč nepatrí produkcii.
-4. Pre Stripe zabezpečiť **oddelený testovací webhook endpoint na testovacej Preview URL** a oddelený podpisový secret; nemeňte existujúci webhook, kým to nie je schválené.
-5. Až potom cez HTTP a skutočné Stripe sandbox platby otestovať dva typy účtov, súhlas s ponukou, 15 % províziu len z práce, doplatok, idempotentnosť webhooku a refundáciu.
-6. Overiť izoláciu prihlasovania, fotografií, komunikácie a obnovenia hesla. Zaznamenať logy a prípadné chyby.
+### Anonymné HTTP testy Supabase REST API (PASS)
 
-## Stav spustenia
-**NO-GO pre produkciu**, kým nie je skutočný test celého toku v oddelenom prostredí, kontrola bezpečnosti a schválenie nasadenia.
+- Verejný katalóg služieb: HTTP **200**, viditeľné 2 služby.
+- Anonymné čítanie objednávok: HTTP **200**, viditeľných **0** záznamov.
+- Anonymné volanie privilegovaného `is_admin()`: HTTP **401**.
+- V SQL sa overilo, že `anon` nemá EXECUTE na `is_admin`, prihlásený administrátor ho môže volať a bežný zákazník dostáva `false`.
+
+### Automatické testy a build (PASS)
+
+Na commite `f52ac6d4feb839e0087a5b28a11cedab133f4acc` v izolovanom Vercel Sandboxe:
+- Čistá inštalácia `npm ci` ✅
+- `npm run lint` ✅
+- `npm run typecheck` ✅
+- `npm test` **33/33 úspešných** ✅
+- `npm run build` ✅ (po rozšírení sieťového prístupu pre `fonts.googleapis.com` a `fonts.gstatic.com`)
+- `npm audit` **0 hlásených zraniteľností k dátumu testu** ✅
+
+## 3. Oddelenie Vercel Preview
+
+Na existujúcom Vercel projekte sú pridané **výhradne branch-scoped Preview** premenné viazané na `fix/audit-p0-middleware-commission`:
+- `NEXT_PUBLIC_SUPABASE_URL` → **testovací** Supabase projekt,
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` → verejný testovací API kľúč,
+- `AI_ESTIMATE_ENABLED=false`,
+- `STRIPE_EXPECTED_MODE=test`.
+
+**Produkčné environment variables neboli zmenené.** V Preview zatiaľ NIE JE nakonfigurovaný testovací `SUPABASE_SERVICE_ROLE_KEY`, ani Stripe test-only serverový a webhook kľúč. Preto toto Preview nie je pripravené na plnohodnotné platby a E2E test súkromných serverových operácií. Pri ďalšom Preview deploymente treba overiť skutočnú výslednú URL a konfiguráciu.
+
+## 4. Stripe sandbox – rozsah a blokátory
+
+- Existujúci Stripe účet je `livemode=false`, **sandbox**.
+- Lokálny Stripe SDK test podpisu eventu prešiel (platný podpis akceptovaný, pozmenený payload odmietnutý). Tento test **neposielal sieťové volania**.
+- Existujúci Stripe sandbox webhook smeruje na `https://fixlook.vercel.app/api/stripe/webhook`, teda **produkčnú doménu**. Neboli naň odoslané žiadne testovacie udalosti.
+- Skutočné Stripe test Checkout sessions/platby/refundácie a následný HTTP webhook **NEBOLI vykonané**. Pred nimi je nutné vytvoriť samostatný test-only endpoint na bezpečnej Preview URL a nasadiť testovacie secret premenné iba do Preview.
+
+## 5. Otvorené bezpečnostné upozornenia a zvyškové riziká
+
+- `is_admin()` anon RPC opravené a overené na testovacom Supabase; nová migrácia ešte nebola aplikovaná na produkciu.
+- Supabase Security Advisor: **21 upozornení** na `SECURITY DEFINER` funkcie prístupné autentifikovaným používateľom – viaceré sú zámerné aplikačné RPC s vnútornou autorizáciou, avšak každá vyžaduje osobitnú bezpečnostnú revíziu.
+- `platform_commission_settings` má RLS bez politiky – **zámerne** neprístupná klientskym rolám (INFO).
+- Testovací Supabase upozornil na nevynútenú **ochranu proti uniknutým heslám**; pred spustením treba preveriť Auth nastavenia.
+- Pokusy o Supabase Auth registráciu so syntetickými e-mailovými doménami skončili `email_address_invalid`. **Skutočné prihlasovanie, registrácia, reset hesla a browser end-to-end test neprebehli**. Nepoužívali sa cudzie skutočné e-mailové adresy.
+- HTTP test Storage API s reálnym session tokenom a test cez browser zatiaľ neprebehol.
+
+## 6. Odporúčaný ďalší krok – stále bez produkcie
+
+1. Vytvoriť v testovacom Supabase podporované testovacie prihlasovacie účty (s kontrolovanými testovacími e-mailmi).
+2. Bez zdieľania hesiel alebo kľúčov v chate nastaviť testovací service-role kľúč **priamo v branch-scoped Vercel Preview** a overiť, že ref nikdy neukazuje na produkciu.
+3. Pre Stripe nakonfigurovať samostatný **sandbox webhook** na izolovanú Preview URL, sandbox secret key a webhook signing secret (výhradne Preview). Produkčný endpoint ponechať nedotknutý.
+4. Vykonať skutočný browser E2E a Stripe test-mode checkout + webhook + refundáciu, následne skontrolovať Stripe ↔ Supabase konzistenciu.
+5. Dotiahnuť bezpečnostnú revíziu privilegovaných RPC, Storage a Auth nastavení; odovzdať na schválenie produkčnú migráciu s plánom zálohy a rollbacku.
+
+**Záver: Draft PR #4 a NO-GO pre produkciu.** Žiadny merge do `master`, žiadna migrácia na produkčnej databáze, žiadne ostré platby.

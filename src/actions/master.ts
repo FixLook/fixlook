@@ -31,7 +31,7 @@ export async function completeOrderAction(formData: FormData) {
 export async function updateMasterProfileAction(formData: FormData) {
   const profile = await requireProfile("master");
   const parsed = masterProfileSchema.safeParse({ description: formData.get("description"), hourlyRate: formData.get("hourlyRate"), available: formData.get("available") === "on" });
-  if (!parsed.success) redirectWithError("/master/profile", parsed.error.errors[0]?.message ?? "Skontrolujte profil.");
+  if (!parsed.success) redirectWithError("/master/profile", parsed.error.issues[0]?.message ?? "Skontrolujte profil.");
   const db = await createServerSupabaseClient();
   const { error } = await db.from("masters").update({ description: parsed.data.description, hourly_rate: euroToCents(parsed.data.hourlyRate), available: parsed.data.available }).eq("profile_id", profile.id);
   if (error) redirectWithError("/master/profile", publicError(error));

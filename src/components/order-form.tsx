@@ -32,7 +32,7 @@ export function OrderForm({ services, profileId, city, aiEnabled = false }: { se
     const form = new FormData(formRef.current);
     const files = form.getAll("photos").filter((f): f is File => f instanceof File && f.size > 0);
     const input = estimateInputSchema.safeParse({ serviceId: Number(form.get("serviceId")), problemDescription: form.get("problemDescription"), city: form.get("city"), images: [] });
-    if (!input.success) { setAiError(input.error.errors[0]?.message ?? "Vyplňte službu, opis a mesto."); return; }
+    if (!input.success) { setAiError(input.error.issues[0]?.message ?? "Vyplňte službu, opis a mesto."); return; }
     setAiPending(true); setAiError("");
     try {
       const images = await prepareEstimatePhotos(files);

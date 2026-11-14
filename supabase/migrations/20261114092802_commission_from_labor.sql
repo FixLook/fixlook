@@ -1,6 +1,6 @@
 -- Prepared for review only; DO NOT run on production before approval and a tested backup.
 -- Never recalculate historical payment amounts, commissions or customer-approved quotes.
--- Basis points: 1000 = 10%; 1500 = 15%. No rate is preselected.
+-- Approved FixLook rate: 15% (1500 basis points), labor only.
 begin;
 
 create table public.platform_commission_settings (
@@ -10,11 +10,9 @@ create table public.platform_commission_settings (
 );
 alter table public.platform_commission_settings enable row level security;
 revoke all on table public.platform_commission_settings from public, anon, authenticated;
--- Only trusted operators may explicitly set a rate after commercial approval.
--- Example, intentionally NOT executed:
--- insert into public.platform_commission_settings(singleton,commission_rate_bps)
--- values (true, 1000) on conflict(singleton) do update
--- set commission_rate_bps = excluded.commission_rate_bps,updated_at=now();
+-- Approved by the owner on 2026-11-14. This new table has no historical rows.
+insert into public.platform_commission_settings(singleton,commission_rate_bps)
+values (true, 1500);
 
 create or replace function public.respond_to_quote(p_quote uuid, p_accept boolean, p_note text default '')
 returns void language plpgsql security definer set search_path = '' as $$

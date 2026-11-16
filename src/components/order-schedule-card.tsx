@@ -10,6 +10,8 @@ import { Select } from "@/components/ui/select";
 type Schedule = {
   proposed_start: string;
   duration_minutes: number;
+  previous_start: string | null;
+  previous_duration_minutes: number | null;
   status: "proposed" | "confirmed";
 };
 
@@ -33,12 +35,13 @@ export function OrderScheduleCard({ role, orderId, status, preferred, schedule }
           {schedule.status === "confirmed" ? "Termín potvrdený oboma stranami" : "Návrh termínu – čaká na zákazníka"}
         </p>
         <p className="text-sm">{formatDateTime(schedule.proposed_start)} · približne {schedule.duration_minutes} minút</p>
+        {schedule.status === "proposed" && schedule.previous_start && <p className="text-sm font-medium text-amber-900">Doteraz potvrdený termín {formatDateTime(schedule.previous_start)} zostáva rezervovaný, kým zákazník neschváli zmenu. Odmietnutím nového návrhu sa zachová pôvodný termín.</p>}
         {schedule.status === "confirmed" && <p className="text-xs text-muted-foreground">Tento čas je rezervovaný. Zmenu termínu musí zákazník znovu potvrdiť.</p>}
       </div> : <p className="text-sm text-muted-foreground">Záväzný termín ešte nie je potvrdený. Termín uvedený v požiadavke je iba preferencia.</p>}
       {role === "customer" && open && schedule?.status === "proposed" &&
         <form action={respondToScheduleAction} className="space-y-3">
           <input name="orderId" type="hidden" value={orderId}/>
-          <p className="text-sm">Vyhovuje vám tento čas? Potvrdením sa termín rezervuje. Ak ho odmietnete, majster môže poslať nový návrh.</p>
+          <p className="text-sm">Vyhovuje vám tento čas? Potvrdením sa termín rezervuje. Ak ho odmietnete, zachová sa pôvodný potvrdený čas (ak existuje), inak majster môže poslať nový návrh.</p>
           <div className="flex flex-wrap gap-2">
             <SubmitButton name="decision" value="accept">Potvrdiť termín</SubmitButton>
             <SubmitButton name="decision" value="reject" variant="outline">Navrhnúť iný čas</SubmitButton>

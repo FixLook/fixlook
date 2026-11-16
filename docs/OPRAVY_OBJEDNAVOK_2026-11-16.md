@@ -7,7 +7,7 @@
 3. **Informácie pre majstra:** zoznam zobrazuje typ služby, mesto, zákazníkov preferovaný termín, odhad a upozornenie na duplicitnú preferenciu. To je iba upozornenie; akceptácia zákazky NIE JE potvrdením konkrétneho termínu.
 4. **Cenová ponuka:** klientsky formulár počíta súčet práca + materiál + doprava, zobrazuje 15 % províziu iba z práce a podiel remeselníka pred vlastnými nákladmi. Presná cena vyžaduje schválenie zákazníka, práce navyše zostávajú samostatne schvaľované. Starý, nepoužívaný 20 % helper v Stripe knižnici je odstránený.
 5. **Chat:** po úspešnom odoslaní správy sa zobrazí spätná väzba, aby oneskorené obnovenie nevzbudzovalo dojem straty. Polling zostáva zachovaný; push/e-mail notifikácie nie sú súčasťou tejto opravy.
-6. **Administrátor:** administrátorský zoznam ukazuje preferovaný termín. Kód a RPC pre priraďovanie existujú. **Produkčný administrátorský účet zatiaľ chýba**: bezpečný postup je v `docs/ADMIN_ACCESS_RECOVERY.md`. Konkrétny účet musí výslovne určiť prevádzkovateľ; žiadne povýšenie konta na produkcii sa nevykonalo.
+6. **Administrátor:** administrátorský zoznam ukazuje preferovaný termín. Kód a RPC pre priraďovanie existujú. Pri prvom audite administrátorský účet chýbal; **záverečná read-only kontrola už zistila 1 produkčný profil s rolou `admin`**. Jeho vznik nebol súčasťou týchto opráv. Prideľovanie cez administračné UI s touto identitou ešte treba E2E overiť; postup obnovy je v `docs/ADMIN_ACCESS_RECOVERY.md`. Konkrétny účet musí výslovne určiť prevádzkovateľ; žiadne povýšenie konta na produkcii sa nevykonalo.
 
 ## Migrácie pripravené vo vetve, otestované iba na oddelenom testovacom Supabase
 

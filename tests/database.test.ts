@@ -38,7 +38,7 @@ test("PostgreSQL: quotes, payments, permissions and private conversations", asyn
     await db.query("insert into auth.users values ($1,$2,$3)", [id, `${id}@example.test`, JSON.stringify({ role, full_name: name })]);
   }
   await db.query("update public.profiles set role='admin' where id=$1", [admin]);
-  await db.query("update public.masters set available=true where profile_id=$1", [master]);
+  await db.query("update public.masters set available=true, verified=true where profile_id=$1", [master]);
   await db.exec("insert into public.services(name,base_price,estimate_max) values('Elektrikár',8000,15000)");
 
   async function as<T>(id: string | null, sql: string, params: unknown[] = [], role = "authenticated"): Promise<T[]> {

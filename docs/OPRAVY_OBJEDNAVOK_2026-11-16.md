@@ -33,7 +33,7 @@ Testovacie DB scenáre: dve objednávky na rovnaký čas, potvrdenie jednej a od
 
 ## Čo zostáva
 
-- Vytvorenie administrátorskej identity **iba na základe výslovného schválenia konkrétneho vlastníckeho účtu**; potom otestovať administrátorské UI.
+- **Overenie existujúceho administrátorského účtu:** záverečná kontrola našla jeden profil s rolou `admin`. Je potrebné overiť vlastníctvo a administračný proces prideľovania zákaziek cez UI. Žiadne povýšenie roly nevykonávať bez výslovného súhlasu.
 - Úplné browser E2E objednávky a dohodnutého termínu na novom Preview po migráciách, s kontrolovanými testovacími Auth účtami.
 - Skutočné Stripe Checkout, webhook a refundácia v odizolovanom testovacom prostredí; nikdy na produkčnom webhooku.
 - Priebežné upozornenia e-mailom/push, calendar sync a meranie času obsluhy – funkcie na ďalšiu iteráciu.

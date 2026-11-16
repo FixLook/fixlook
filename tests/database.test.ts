@@ -34,6 +34,7 @@ test("PostgreSQL: quotes, payments, permissions and private conversations", asyn
   await db.exec(await readFile("supabase/migrations/20261008215530_ai_price_estimates.sql", "utf8"));
   await db.exec(await readFile("supabase/migrations/20261114115000_restrict_anon_admin_rpc.sql", "utf8"));
   await db.exec(await readFile("supabase/migrations/20261116190000_order_schedule_confirmation.sql", "utf8"));
+  await db.exec(await readFile("supabase/migrations/20261116203000_schedule_cleanup_on_reassign.sql", "utf8"));
   for (const [id, role, name] of [[customer,"customer","Zákazník"],[master,"master","Majster"],[admin,"customer","Administrátor"],[stranger,"customer","Cudzí zákazník"],[unverified,"master","Neoverený majster"]]) {
     await db.query("insert into auth.users values ($1,$2,$3)", [id, `${id}@example.test`, JSON.stringify({ role, full_name: name })]);
   }
@@ -81,6 +82,8 @@ test("PostgreSQL: quotes, payments, permissions and private conversations", asyn
     await as(customer,"select public.respond_to_schedule($1,true)",[second]);
     assert.equal((await as(customer,"select * from public.order_schedules where status='confirmed' and order_id in ($1,$2)",[first,second])).length,2);
     assert.equal((await as(stranger,"select * from public.order_schedules where order_id=$1",[first])).length,0);
+    await as(customer,"select public.cancel_order($1)",[first]);
+    assert.equal((await as(customer,"select * from public.order_schedules where order_id=$1",[first])).length,0);
     await db.query("update public.masters set verified=false where profile_id=$1",[master]);
   });
   const aiInput = [1, "Výmena kuchynskej batérie", "Košice", "a".repeat(64), 1];

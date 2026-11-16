@@ -3,7 +3,7 @@
 **Stav:** návrh postupu, `master` ani produkčný Supabase neboli zmenené.
 
 ## Zistenie
-Pri UX E2E kontrole 16.11.2026 nebol v produkčnej tabuľke `public.profiles` žiadny profil s rolou `admin`. Aplikácia už obsahuje chránené obrazovky `/admin/orders` a RPC `assign_master`, ale bez administrátorskej identity ich nie je možné štandardne používať. Testovacie objednávky sme počas auditu pridelili úzko obmedzeným SQL zápisom; takýto postup nie je vhodný pre dennú prevádzku.
+Pri skoršej UX E2E kontrole 16.11.2026 nebol v produkčnej tabuľke `public.profiles` žiadny profil s rolou `admin`. **Záverečná čítacia kontrola už zistila jeden profil `admin`; nemožno ho považovať za vytvorený týmito opravami.** Tento postup sa preto aktuálne nemá vykonávať bez novej kontroly, kto je správcom. Namiesto toho treba otestovať existujúci administrátorský účet. Aplikácia už obsahuje chránené obrazovky `/admin/orders` a RPC `assign_master`, ale bez administrátorskej identity ich nie je možné štandardne používať. Testovacie objednávky sme počas auditu pridelili úzko obmedzeným SQL zápisom; takýto postup nie je vhodný pre dennú prevádzku.
 
 ## Čo je potrebné pred aktiváciou
 1. Prevádzkovateľ musí **výslovne vybrať konkrétny vlastný e-mail a používateľský profil**, ktorý bude administrátorom.

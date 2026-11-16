@@ -37,4 +37,4 @@
 - **Neurobili sme úplné browser E2E** vytvorenie objednávky → admin pridelenie → majster prijatie → schválenie ponuky → skutočná Stripe test platba. Pre úplný test treba oddelené skutočné Auth účty a bezpečnú konfiguráciu testovacieho Stripe Checkout.
 - Niektoré UX zistenia vychádzajú z presného kódu a z čítania webových obrazoviek, nie z fyzického pozorovania používateľov.
 - AI odhad sa počas UX auditu nespúšťal, aby sa nevytvárali dodatočné náklady.
-- **Žiadne produkčné dáta sa nezmenili**. Produkčné testovacie heslá sa nezapisovali do dokumentácie ani repozitára.
+- **Žiadne produkčné objednávky, ponuky, platby ani chatové správy sa nezmenili.** Prihlásenie do dodaných testovacích účtov mohlo štandardne vytvoriť produkčné Auth sessions a záznam o poslednom prihlásení. Testovacie heslá sa nezapisovali do dokumentácie ani repozitára.

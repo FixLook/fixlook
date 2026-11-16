@@ -33,6 +33,7 @@ test("PostgreSQL: quotes, payments, permissions and private conversations", asyn
   await db.exec(await readFile("supabase/migrations/002_quotes_messages_security.sql", "utf8"));
   await db.exec(await readFile("supabase/migrations/20261008215530_ai_price_estimates.sql", "utf8"));
   await db.exec(await readFile("supabase/migrations/20261114115000_restrict_anon_admin_rpc.sql", "utf8"));
+  await db.exec(await readFile("supabase/migrations/20261116190000_order_schedule_confirmation.sql", "utf8"));
   for (const [id, role, name] of [[customer,"customer","Zákazník"],[master,"master","Majster"],[admin,"customer","Administrátor"],[stranger,"customer","Cudzí zákazník"],[unverified,"master","Neoverený majster"]]) {
     await db.query("insert into auth.users values ($1,$2,$3)", [id, `${id}@example.test`, JSON.stringify({ role, full_name: name })]);
   }
@@ -58,6 +59,27 @@ test("PostgreSQL: quotes, payments, permissions and private conversations", asyn
     await assert.rejects(as(null, "select public.is_admin()", [], "anon"), /permission denied/);
     assert.equal(await scalar<boolean>(admin, "select public.is_admin() as value"), true);
     assert.equal(await scalar<boolean>(customer, "select public.is_admin() as value"), false);
+  });
+  await t.test("appointments require customer confirmation and never double-book a professional", async () => {
+    const first = await scalar<string>(customer,"select public.create_order(1,'TEST výmena zásuvky','Testovacia 10','Košice') as value");
+    const second = await scalar<string>(customer,"select public.create_order(1,'TEST oprava sifónu','Testovacia 20','Košice') as value");
+    await as(admin,"select public.assign_master($1,$2)",[first,master]);
+    await as(admin,"select public.assign_master($1,$2)",[second,master]);
+    await as(master,"select public.respond_to_order($1,true)",[first]);
+    await as(master,"select public.respond_to_order($1,true)",[second]);
+    const start = new Date(Date.now()+48*3600_000).toISOString();
+    const later = new Date(Date.now()+51*3600_000).toISOString();
+    await assert.rejects(as(stranger,"select public.propose_schedule($1,$2,120)",[first,start]),/iba pridelený majster/);
+    await as(master,"select public.propose_schedule($1,$2,120)",[first,start]);
+    await as(master,"select public.propose_schedule($1,$2,120)",[second,start]);
+    await assert.rejects(as(stranger,"select public.respond_to_schedule($1,true)",[first]),/iba zákazník/);
+    await as(customer,"select public.respond_to_schedule($1,true)",[first]);
+    await assert.rejects(as(customer,"select public.respond_to_schedule($1,true)",[second]),/obsadený/);
+    assert.equal(await scalar<string>(customer,"select status as value from public.order_schedules where order_id=$1",[second]),"proposed");
+    await as(master,"select public.propose_schedule($1,$2,120)",[second,later]);
+    await as(customer,"select public.respond_to_schedule($1,true)",[second]);
+    assert.equal((await as(customer,"select * from public.order_schedules where status='confirmed' and order_id in ($1,$2)",[first,second])).length,2);
+    assert.equal((await as(stranger,"select * from public.order_schedules where order_id=$1",[first])).length,0);
   });
   const aiInput = [1, "Výmena kuchynskej batérie", "Košice", "a".repeat(64), 1];
   const aiResult = { kind: "range", summary: "Bežná výmena batérie.", labor: { min: 4000, max: 6000 }, materials: { min: 5000, max: 10000 }, travel: { min: 1000, max: 2000 }, total: { min: 10000, max: 18000 }, assumptions: ["Bežný prístup."], priceFactors: ["Cena batérie."], questions: [] };

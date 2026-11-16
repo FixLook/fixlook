@@ -84,6 +84,13 @@ test("PostgreSQL: quotes, payments, permissions and private conversations", asyn
     assert.equal((await as(stranger,"select * from public.order_schedules where order_id=$1",[first])).length,0);
     await as(customer,"select public.cancel_order($1)",[first]);
     assert.equal((await as(customer,"select * from public.order_schedules where order_id=$1",[first])).length,0);
+    const reassigned = await scalar<string>(customer,"select public.create_order(1,'TEST zmena majstra','Testovacia 30','Košice') as value");
+    await as(admin,"select public.assign_master($1,$2)",[reassigned,master]);
+    await as(master,"select public.propose_schedule($1,$2,90)",[reassigned,later]);
+    await db.query("update public.masters set verified=true,available=true where profile_id=$1",[unverified]);
+    await as(admin,"select public.assign_master($1,$2)",[reassigned,unverified]);
+    assert.equal((await as(customer,"select * from public.order_schedules where order_id=$1",[reassigned])).length,0);
+    await db.query("update public.masters set verified=false,available=false where profile_id=$1",[unverified]);
     await db.query("update public.masters set verified=false where profile_id=$1",[master]);
   });
   const aiInput = [1, "Výmena kuchynskej batérie", "Košice", "a".repeat(64), 1];

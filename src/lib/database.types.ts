@@ -30,6 +30,9 @@ export type Database = {
         master_id: string;
         proposed_start: string;
         duration_minutes: number;
+        previous_start: string | null;
+        previous_duration_minutes: number | null;
+        previous_confirmed_at: string | null;
         status: "proposed" | "confirmed";
         proposed_at: string;
         confirmed_at: string | null;

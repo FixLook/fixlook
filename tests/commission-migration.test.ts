@@ -32,8 +32,7 @@ test("FixLook commission applies to labor only and requires explicit configurati
   for (const migration of [
     "supabase/migrations/001_init.sql",
     "supabase/migrations/002_quotes_messages_security.sql",
-    "supabase/migrations/20261008215530_ai_price_estimates.sql",
-    "supabase/migrations/20261114092802_commission_from_labor.sql"
+    "supabase/migrations/20261008215530_ai_price_estimates.sql"
   ]) {
     await db.exec(await readFile(migration, "utf8"));
   }
@@ -70,6 +69,24 @@ test("FixLook commission applies to labor only and requires explicit configurati
     );
     return result[0].value;
   }
+
+  // Pre-existing pending payment with the previous 20%-on-total economics.
+  // The approved commission migration may affect new approvals, never this row.
+  const legacyOrder = (await as<{ value: string }>(
+    customer, "select public.create_order(1,'Historická čakajúca platba – TEST','Testovacia 20','Košice') as value"
+  ))[0].value;
+  const legacyPayment = (await db.query<{ id: string }>(
+    "insert into public.payments(order_id,amount,commission_amount,master_amount,status) values($1,5000,1000,4000,'pending') returning id",
+    [legacyOrder]
+  )).rows[0].id;
+  await db.exec(await readFile("supabase/migrations/20261114092802_commission_from_labor.sql", "utf8"));
+
+  await t.test("migration does not change existing pending payments at legacy commission", async () => {
+    const row = (await db.query<{ amount: number; commission_amount: number; master_amount: number; status: string }>(
+      "select amount,commission_amount,master_amount,status from public.payments where id=$1", [legacyPayment]
+    )).rows[0];
+    assert.deepEqual(row, { amount: 5000, commission_amount: 1000, master_amount: 4000, status: "pending" });
+  });
 
   const orderId = (await as<{ value: string }>(
     customer, "select public.create_order(1,'Nefunkčná zásuvka','Hlavná 10','Košice') as value"

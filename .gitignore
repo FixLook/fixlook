@@ -6,3 +6,13 @@ coverage/
 .env*.local
 *.tsbuildinfo
 vercel.json
+
+# Database exports: never commit customer records, authentication data or backups.
+/backups/
+/db-backups/
+/roles.sql
+/schema.sql
+/data.sql
+*.backup
+*.pgdump
+*.dump

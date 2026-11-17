@@ -17,18 +17,20 @@ Existujúca produkcia má v `supabase_migrations` odlišnú históriu od názvov
 
 ## 2. Povinná záloha pred akoukoľvek produkčnou DB zmenou
 
-**Záloha zatiaľ nebola vykonaná ani overená.** V dostupných pripojených nástrojoch nie je zálohovací endpoint ani zabezpečený prenos celého dumpu. Nikdy neukladať produkčný dump, DB heslo alebo token do GitHubu, chatu, PR či Vercel build logov.
+**Organizácia FixLook je na pláne Free; automatické denné zálohy preto nie sú dostupné. Záloha zatiaľ nebola vykonaná ani overená.** V dostupných pripojených nástrojoch nie je zálohovací endpoint ani zabezpečený prenos celého dumpu. Nikdy neukladať produkčný dump, DB heslo alebo token do GitHubu, chatu, PR či Vercel build logov.
 
 1. Overiť plán a reálne dostupné backupy projektu v **Supabase Dashboard → Database → Backups**. Na Free nie sú automatické denné backupy; pri Pro/Team/Enterprise existujú denné backupy, ale na obnovenie produkcie stále treba vyhodnotiť bod obnovy.
 2. Nezávisle vytvoriť **logický export produkcie** cez oficiálny Supabase CLI v dôveryhodnom lokálnom prostredí vlastníka, používajúc DB connection string uložený výhradne vo vlastnom secrets manageri. Príkazy z oficiálneho postupu:
    ```bash
    # iba na dôveryhodnom počítači; DB_URL nenahrádzať údajmi v GitHube
-   supabase db dump --db-url "$PRODUCTION_DB_URL" -f roles.sql --role-only
-   supabase db dump --db-url "$PRODUCTION_DB_URL" -f schema.sql
-   supabase db dump --db-url "$PRODUCTION_DB_URL" -f data.sql --use-copy --data-only \
+   # Overiť verziu: Supabase CLI v3 používa --remote.
+   # Spúšťať iba na dôveryhodnom počítači a mimo Git repozitára.
+   supabase db dump --remote="$PRODUCTION_DB_URL" -f roles.sql --role-only
+   supabase db dump --remote="$PRODUCTION_DB_URL" -f schema.sql
+   supabase db dump --remote="$PRODUCTION_DB_URL" -f data.sql --use-copy --data-only \
      -x "storage.buckets_vectors" -x "storage.vector_indexes"
    ```
-   Pred použitím overiť aktuálnu syntax cez `supabase db dump --help`. Skontrolovať, či dump zachytáva požadované tabuľky/roly/schémy a či potrebuje osobitne export `auth` a `storage`.
+   Pred použitím overiť aktuálnu syntax cez `supabase --version` a `supabase db dump --help` (CLI v2 používa aj staršie prepínače; vo v3 je `--db-url` zastaraný a vo v4 odstránený). **Pozor: štandardný export Supabase CLI vynecháva spravované schémy `auth` a `storage`**, preto nejde o úplnú obnoviteľnú zálohu Auth používateľov a súborov. Súčasťou plánovania musí byť samostatný dokumentovaný postup zachovania Auth, Storage metadát/objektov a migrácií. CLI môže uvádzať pripojovací reťazec v argumentoch procesu alebo logoch, preto export spúšťať iba v dôveryhodnom prostredí s obmedzeným prístupom k procesom a logom.
 3. Osobitne zazálohovať **objekty Storage** (nie iba SQL metadáta), súkromné fotografie a relevantnú konfiguráciu Auth. Supabase DB backup nezahŕňa samotné súbory uložené cez Storage API.
 4. Vytvoriť šifrovanú, prístupovo obmedzenú off-site kópiu exportu; uchovať kontrolné súčty a čas vytvorenia.
 5. **Obnovu otestovať na ďalšom izolovanom prostredí** iba so súhlasom s jeho prípadnými nákladmi. Bez úspešnej skúšky obnovy nie je backup dôveryhodne overený.

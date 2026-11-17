@@ -11,7 +11,7 @@
 | GitHub | `fix/audit-p0-middleware-commission` | Opravný návrh | Testovanie a úpravy |
 | Vercel | branch Preview (nie Production) | Skúšobné zostavenie | SSO ochrana, výhradne staging premenné |
 
-**Záverečný read-only stav produkcie:** 5 objednávok, 3 platby, 2 cenové ponuky, 1 profil s rolou `admin`. Počty sa musia overiť znova tesne pred zásahom; môžu sa zmeniť.
+**Záverečný read-only stav produkcie:** 5 objednávok, 3 platby (z nich 1 čakajúca), 2 cenové ponuky (z nich 1 otvorená), 1 profil s rolou `admin`. Nová tabuľka `order_schedules` ani `platform_commission_settings` ešte v produkcii neexistuje. Počty sa musia overiť znova tesne pred zásahom; môžu sa zmeniť.
 
 Existujúca produkcia má v `supabase_migrations` odlišnú históriu od názvov niektorých lokálnych súborov: `20261005202442 quotes_messages_security`, `20261008220358 ai_price_estimates`. **Nevykonávať slepo `supabase db push` ani `db reset` na produkcii**. Najprv zosúladiť migration history, schému a skutočné definície. Zabrániť opakovanému vykonaniu init/quotes/AI migrácií.
 
@@ -46,7 +46,7 @@ Z repozitára v pracovnej vetve, **iba po schválení produkčného nasadenia a 
 4. `supabase/migrations/20261116203000_schedule_cleanup_on_reassign.sql` — zrušenie neaktuálnych termínov pri zmene majstra alebo zrušení objednávky.
 5. `supabase/migrations/20261116214000_preserve_appointments_during_reschedule.sql` — zachovanie pôvodného potvrdeného času pri návrhu zmeny.
 
-**Pred aplikáciou**: prečítať posledné schémy/trigger definície na produkcii, overiť `to_regclass('public.order_schedules')`, `to_regclass('public.platform_commission_settings')`, prístupové práva a existenciu konfliktných mien. Preveriť súčasnú definíciu `respond_to_quote`, počet nezaplatených a rozpracovaných ponúk. V čase zmeny zamedziť schváleniu ponúk podľa starých pravidiel. Udržať konzistenciu schémy a aplikácie.
+**Pred aplikáciou**: prečítať posledné schémy/trigger definície na produkcii, overiť `to_regclass('public.order_schedules')`, `to_regclass('public.platform_commission_settings')`, prístupové práva a existenciu konfliktných mien. Preveriť súčasnú definíciu `respond_to_quote`, počet nezaplatených a rozpracovaných ponúk. **Zistený živý blokátor:** existuje jedna otvorená ponuka a jedna čakajúca platba. Pred zásahom rozhodnúť, či sa čakajúca ponuka má dokončiť podľa pôvodných podmienok alebo byť znova výslovne odsúhlasená. Existujúci platobný záznam sa nesmie automaticky prepočítať. V čase zmeny zamedziť schváleniu ponúk podľa starých pravidiel. Udržať konzistenciu schémy a aplikácie.
 
 **Po aplikácii na produkcii (iba po súhlase)**:
 - prepočet: práca 100 €, materiál 40 €, doprava 10 € → provízia 15 €; história platieb nesmie byť prepísaná;

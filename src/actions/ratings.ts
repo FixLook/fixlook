@@ -18,7 +18,7 @@ export async function createRatingAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    redirectWithError("/customer/ratings", parsed.error.errors[0]?.message ?? "Skontrolujte hodnotenie.");
+    redirectWithError("/customer/ratings", parsed.error.issues[0]?.message ?? "Skontrolujte hodnotenie.");
   }
 
   const supabase = await createServerSupabaseClient();

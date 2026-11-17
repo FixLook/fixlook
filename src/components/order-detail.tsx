@@ -1,9 +1,11 @@
 import { AutoRefresh } from "@/components/auto-refresh";
+import { OrderScheduleCard } from "@/components/order-schedule-card";
+import { QuoteForm } from "@/components/quote-form";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { acceptOrderAction, rejectOrderAction, completeOrderAction } from "@/actions/master";
-import { proposeQuoteAction, respondToQuoteAction, cancelOrderAction, withdrawQuoteAction } from "@/actions/quotes";
+import { respondToQuoteAction, cancelOrderAction, withdrawQuoteAction } from "@/actions/quotes";
 import { createCheckoutSessionAction } from "@/actions/payments";
 import { requireProfile } from "@/lib/auth";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
@@ -15,7 +17,6 @@ import { StatusBadge } from "@/components/status-badge";
 import { SubmitButton } from "@/components/submit-button";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AiEstimateCard } from "@/components/ai-estimate-card";
@@ -29,13 +30,14 @@ export async function OrderDetail({ role, params, searchParams }: { role: UserRo
   const db = await createServerSupabaseClient();
   const { data: order } = await db.from("orders").select("*").eq("id", id).single();
   if (!order || (role === "customer" && order.customer_id !== profile.id) || (role === "master" && order.master_id !== profile.id)) notFound();
-  const [serviceResult, peopleResult, quotesResult, paymentsResult, photosResult, conversationResult] = await Promise.all([
+  const [serviceResult, peopleResult, quotesResult, paymentsResult, photosResult, conversationResult, scheduleResult] = await Promise.all([
     db.from("services").select("name").eq("id", order.service_id).single(),
     db.from("profiles").select("id,full_name,phone").in("id", [order.customer_id, ...(order.master_id ? [order.master_id] : [])]),
     db.from("order_quotes").select("*").eq("order_id", id).order("created_at", { ascending: false }),
     db.from("payments").select("*").eq("order_id", id).order("created_at", { ascending: false }),
     db.from("order_photos").select("*").eq("order_id", id),
-    db.from("conversations").select("id").eq("order_id", id).eq("kind", "order").maybeSingle()
+    db.from("conversations").select("id").eq("order_id", id).eq("kind", "order").maybeSingle(),
+    db.from("order_schedules").select("*").eq("order_id", id).maybeSingle()
   ]);
   const quotes = quotesResult.data ?? [];
   const aiResult = order.ai_estimate_id ? await db.from("ai_estimates").select("result,photo_count").eq("id", order.ai_estimate_id).maybeSingle() : null;
@@ -49,7 +51,7 @@ export async function OrderDetail({ role, params, searchParams }: { role: UserRo
   }));
   const blocked = quotes.some(q => q.status === "proposed") || payments.some(p => p.status === "pending");
   const canPropose = role !== "customer" && ["accepted", "in_progress"].includes(order.status) && !payments.some(p => p.status === "pending");
-  const hasError = [quotesResult, paymentsResult, peopleResult, photosResult, conversationResult, aiResult].some(result => result?.error);
+  const hasError = [quotesResult, paymentsResult, peopleResult, photosResult, conversationResult, scheduleResult, aiResult].some(result => result?.error);
   return <div className="space-y-6"><AutoRefresh />
     <div className="flex flex-wrap items-start justify-between gap-4"><div><h1 className="text-3xl font-bold">{order.order_number}</h1><p className="mt-1 text-muted-foreground">{serviceResult.data?.name ?? "Služba"}</p></div><StatusBadge status={order.status} /></div>
     <Notice error={hasError ? "Niektoré údaje sa nepodarilo načítať. Obnovte stránku pred vykonaním zmien." : undefined} />
@@ -63,7 +65,7 @@ export async function OrderDetail({ role, params, searchParams }: { role: UserRo
         <Detail label="Popis problému" value={order.problem_description} /><Detail label="Adresa" value={`${order.address}, ${order.city}`} />
         <Detail label="Preferovaný termín (slovenský čas)" value={formatDateTime(order.preferred_datetime)} />
         {!order.ai_estimate_id && <Detail label="Orientačný cenníkový odhad" value={formatEstimate(order.estimated_price, order.estimated_price_max)} />}
-        <p className="text-sm text-muted-foreground">Odhad nie je záväzná cena. Presnú cenu a rozsah potvrdíte v cenovej ponuke. Termín si dohodnite s majstrom v chate.</p>
+        <p className="text-sm text-muted-foreground">Odhad nie je záväzná cena. Presnú cenu a rozsah potvrdíte v cenovej ponuke. Preferovaný termín nie je rezervácia: potvrdený termín nájdete v samostatnej sekcii nižšie.</p>
         {(peopleResult.data ?? []).filter(person => person.id !== profile.id).map(person => <div key={person.id}><Detail label={person.id === order.customer_id ? "Zákazník" : "Majster"} value={person.full_name} /><p className="mt-1 text-sm">{person.phone ?? "Telefón nie je uvedený"}</p></div>)}
         {!order.master_id && <p className="text-sm text-muted-foreground">Administrátor vám pridelí overeného majstra.</p>}
       </CardContent></Card>
@@ -80,6 +82,7 @@ export async function OrderDetail({ role, params, searchParams }: { role: UserRo
         {role === "customer" && ["new", "assigned", "accepted"].includes(order.status) && !payments.length && !hasError && <form action={cancelOrderAction} className="space-y-2"><input type="hidden" name="orderId" value={id} /><label className="flex items-center gap-2 text-sm"><input type="checkbox" required /> Chcem zrušiť túto objednávku</label><SubmitButton variant="outline">Zrušiť objednávku</SubmitButton></form>}
       </CardContent></Card>
     </div>
+    <OrderScheduleCard role={role} orderId={id} status={order.status} preferred={order.preferred_datetime} schedule={scheduleResult.data} />
     {aiEstimate.success && <AiEstimateCard result={aiEstimate.data} photoCount={aiResult?.data?.photo_count ?? 0} />}
     <Card><CardHeader><CardTitle>Cenové ponuky a práce navyše</CardTitle></CardHeader><CardContent className="space-y-5">
       <p className="text-sm text-muted-foreground">Každá ponuka uvádza celkovú cenu vrátane všetkých nákladov. Práce navyše sa realizujú až po samostatnom schválení a úhrade. Schválenú cenu nemožno jednostranne zmeniť.</p>
@@ -97,13 +100,7 @@ export async function OrderDetail({ role, params, searchParams }: { role: UserRo
         </form>}
         {role !== "customer" && quote.status === "proposed" && <form action={withdrawQuoteAction} className="mt-4"><input type="hidden" name="quoteId" value={quote.id} /><SubmitButton variant="outline" size="sm">Stiahnuť túto ponuku</SubmitButton></form>}
       </article>)}
-      {canPropose && !hasError && <form action={proposeQuoteAction} className="space-y-4 rounded-xl bg-accent p-4 sm:p-5">
-        <h3 className="font-semibold">{order.status === "in_progress" ? "Navrhnúť práce navyše" : "Pripraviť cenovú ponuku"}</h3><input type="hidden" name="orderId" value={id} />
-        <div className="space-y-2"><Label htmlFor="quote-scope">Presný rozsah prác, materiál a podmienky</Label><Textarea id="quote-scope" name="scope" minLength={10} maxLength={4000} required placeholder="Čo cena zahŕňa, čo treba opraviť a aké práce vykonáte…" /></div>
-        <div className="grid gap-4 sm:grid-cols-3">{[["labor", "Práca (€)"], ["materials", "Materiál (€)"], ["travel", "Doprava (€)"]].map(([name,label]) => <div key={name} className="space-y-2"><Label htmlFor={`quote-${name}`}>{label}</Label><Input id={`quote-${name}`} name={name} type="text" inputMode="decimal" defaultValue={name === "labor" ? "" : "0"} required /></div>)}</div>
-        <p className="text-xs text-muted-foreground">Uveďte konečné sumy vrátane daní a poplatkov. Aktívnu neschválenú ponuku nahradí táto nová ponuka; história zostane zachovaná.</p>
-        <SubmitButton pendingText="Odosielam ponuku…">Poslať zákazníkovi na schválenie</SubmitButton>
-      </form>}
+      {canPropose && !hasError && <QuoteForm orderId={id} extra={order.status === "in_progress"} />}
     </CardContent></Card>
     <Card><CardHeader><CardTitle>Fotografie problému</CardTitle></CardHeader><CardContent><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{photos.map(photo => <div key={photo.id} className="relative aspect-square overflow-hidden rounded-lg border">{photo.url ? <Image src={photo.url} alt="Fotografia problému v objednávke" fill unoptimized className="object-cover" sizes="(min-width: 1024px) 25vw, 50vw" /> : <p className="p-4 text-sm">Fotografiu sa nepodarilo načítať.</p>}</div>)}</div>{!photos.length && <p className="text-sm text-muted-foreground">Nie sú priložené žiadne fotografie.</p>}</CardContent></Card>
   </div>;

@@ -37,6 +37,16 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
+  // Anonymous requests have no session to refresh. Avoid a network round-trip,
+  // especially on the landing page when Supabase is temporarily unavailable.
+  const hasAuthCookie = request.cookies.getAll().some(({ name }) =>
+    name.startsWith("sb-") && name.includes("auth-token") ||
+    name === "sb-access-token"
+  );
+  if (!hasAuthCookie) return response;
+
+  // getUser still verifies the session server-side. Caller decides how to
+  // handle network failures without treating them as a valid login.
   await supabase.auth.getUser();
 
   return response;

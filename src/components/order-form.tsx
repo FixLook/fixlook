@@ -32,7 +32,7 @@ export function OrderForm({ services, profileId, city, aiEnabled = false }: { se
     const form = new FormData(formRef.current);
     const files = form.getAll("photos").filter((f): f is File => f instanceof File && f.size > 0);
     const input = estimateInputSchema.safeParse({ serviceId: Number(form.get("serviceId")), problemDescription: form.get("problemDescription"), city: form.get("city"), images: [] });
-    if (!input.success) { setAiError(input.error.errors[0]?.message ?? "Vyplňte službu, opis a mesto."); return; }
+    if (!input.success) { setAiError(input.error.issues[0]?.message ?? "Vyplňte službu, opis a mesto."); return; }
     setAiPending(true); setAiError("");
     try {
       const images = await prepareEstimatePhotos(files);
@@ -90,7 +90,7 @@ export function OrderForm({ services, profileId, city, aiEnabled = false }: { se
       <div className="space-y-2"><Label htmlFor="serviceId">Služba</Label><Select id="serviceId" name="serviceId" required>{services.map(service => <option key={service.id} value={service.id}>{service.name}{!aiEnabled ? ` – ${formatEstimate(service.base_price, service.estimate_max)}` : ""}</option>)}</Select><p className="text-xs text-muted-foreground">Cena závisí od rozsahu opravy a materiálu. Záväznú cenu schválite v ponuke.</p></div>
       <div className="space-y-2"><Label htmlFor="problemDescription">Popis problému</Label><Textarea id="problemDescription" name="problemDescription" minLength={10} maxLength={4000} placeholder="Napríklad: Pod kuchynským drezom uniká voda do skrinky." required /></div>
       <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-2"><Label htmlFor="address">Adresa</Label><Input id="address" name="address" minLength={5} maxLength={300} autoComplete="street-address" required /></div><div className="space-y-2"><Label htmlFor="city">Mesto</Label><Input id="city" name="city" defaultValue={city} minLength={2} maxLength={100} autoComplete="address-level2" required /></div></div>
-      <div className="space-y-2"><Label htmlFor="preferredDatetime">Preferovaný termín (slovenský čas)</Label><Input id="preferredDatetime" name="preferredDatetime" type="datetime-local" /></div>
+      <div className="space-y-2"><Label htmlFor="preferredDatetime">Preferovaný termín (slovenský čas)</Label><Input id="preferredDatetime" name="preferredDatetime" type="datetime-local" /><p className="text-xs text-muted-foreground">Toto je iba váš preferovaný čas, nie záväzná rezervácia. Pridelený majster vám pošle konkrétny termín a ten následne potvrdíte v detaile objednávky.</p></div>
       <div className="space-y-2"><Label htmlFor="photos">Fotografie</Label><Input id="photos" name="photos" type="file" accept="image/jpeg,image/png,image/webp" multiple /><p className="text-xs text-muted-foreground">Najviac 5 fotografií, každá do 5 MB. Fotografie vidíte vy, pridelený majster a administrátor.</p></div>
       {aiEnabled && <section aria-labelledby="ai-estimate-heading" className="space-y-4 rounded-2xl border p-4 sm:p-5">
         <div><h2 id="ai-estimate-heading" className="font-semibold">Koľko môže oprava stáť?</h2><p className="mt-1 text-sm text-muted-foreground">AI vám pripraví nezáväzné rozpätie vrátane práce, materiálu a výjazdu. Fotografie pomôžu spresniť odhad; niekedy bude potrebná obhliadka.</p></div>

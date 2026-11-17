@@ -16,7 +16,7 @@ export async function updateProfileAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    redirectWithError(`/${profile.role}/profile`, parsed.error.errors[0]?.message ?? "Skontrolujte údaje profilu.");
+    redirectWithError(`/${profile.role}/profile`, parsed.error.issues[0]?.message ?? "Skontrolujte údaje profilu.");
   }
 
   const supabase = await createServerSupabaseClient();

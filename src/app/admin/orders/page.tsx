@@ -39,9 +39,9 @@ export default async function AdminOrdersPage() {
                 <div>
                   <CardTitle><Link className="underline underline-offset-4" href={`/admin/orders/${order.id}`}>{order.order_number}</Link></CardTitle>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {order.city} - {formatDateTime(order.created_at)} -{" "}
-                    {formatCurrency(order.estimated_price)}
+                    {order.city} · vytvorené {formatDateTime(order.created_at)} · {formatCurrency(order.estimated_price)}
                   </p>
+                  <p className="mt-2 text-sm"><strong>Preferovaný termín:</strong> {formatDateTime(order.preferred_datetime)}</p>
                 </div>
                 <StatusBadge status={order.status} />
               </div>
@@ -49,6 +49,7 @@ export default async function AdminOrdersPage() {
             <CardContent className="grid gap-4 lg:grid-cols-[1fr_360px]">
               <div className="space-y-2">
                 <p className="text-sm text-dark">{order.problem_description}</p>
+                <p className="text-xs text-muted-foreground">Preferovaný termín nie je potvrdená rezervácia. Majster navrhne konkrétny termín a zákazník ho musí potvrdiť.</p>
                 <p className="text-sm text-muted-foreground">
                   Pridelený majster:{" "}
                   {order.master_id

@@ -25,6 +25,18 @@ export type Database = {
         Update: { status?: "pending" | "completed" | "failed"; result?: Json; model?: string };
         Relationships: [];
       };
+      order_schedules: ReadTable<{
+        order_id: string;
+        master_id: string;
+        proposed_start: string;
+        duration_minutes: number;
+        previous_start: string | null;
+        previous_duration_minutes: number | null;
+        previous_confirmed_at: string | null;
+        status: "proposed" | "confirmed";
+        proposed_at: string;
+        confirmed_at: string | null;
+      }>;
       order_quotes: ReadTable<Quote>;
       conversations: ReadTable<Conversation>;
       messages: ReadTable<Message>;
@@ -359,6 +371,8 @@ export type Database = {
       assign_master: { Args: { p_order: string; p_master: string }; Returns: undefined };
       verify_master: { Args: { p_master: string; p_verified: boolean }; Returns: undefined };
       respond_to_order: { Args: { p_order: string; p_accept: boolean }; Returns: undefined };
+      propose_schedule: { Args: { p_order: string; p_start: string; p_duration: number }; Returns: undefined };
+      respond_to_schedule: { Args: { p_order: string; p_accept: boolean }; Returns: undefined };
       propose_quote: { Args: { p_order: string; p_scope: string; p_labor: number; p_materials: number; p_travel: number }; Returns: string };
       withdraw_quote: { Args: { p_quote: string }; Returns: undefined };
       respond_to_quote: { Args: { p_quote: string; p_accept: boolean; p_note?: string }; Returns: undefined };

@@ -14,6 +14,7 @@ export function Chat({ conversationId, userId, initialMessages, initialStatus }:
   const [error, setError] = useState("");
   const [connectionError, setConnectionError] = useState("");
   const [sending, setSending] = useState(false);
+  const [sentStatus, setSentStatus] = useState("");
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [hasOlder, setHasOlder] = useState(initialMessages.length === 50);
   const latest = useRef(initialMessages.at(-1)?.id ?? 0);
@@ -76,20 +77,21 @@ export function Chat({ conversationId, userId, initialMessages, initialStatus }:
       </div>)}
     </div>
     {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
+    {sentStatus && !error && <p role="status" className="text-sm text-primary-strong">{sentStatus}</p>}
     {status === "closed" ? <p className="rounded-lg bg-slate-100 p-4 text-sm">Podnet je uzavretý. Ak potrebujete pokračovať, znovu ho otvorte.</p> :
       <form onSubmit={async event => {
         event.preventDefault(); if (sending || !body.trim()) return;
-        setSending(true); setError("");
+        setSending(true); setError(""); setSentStatus("");
         clientId.current ??= crypto.randomUUID();
         try {
           const result = await sendMessageAction(conversationId, body, clientId.current);
           if (result.error) setError(result.error);
-          else { setBody(""); clientId.current = null; await refresh(); list.current?.scrollTo({ top: list.current.scrollHeight }); }
+          else { setBody(""); clientId.current = null; setSentStatus("Správa bola odoslaná. Konverzácia sa aktualizuje."); await refresh(); list.current?.scrollTo({ top: list.current.scrollHeight }); }
         } catch { setError("Správu sa nepodarilo odoslať. Text zostal zachovaný; skúste to znova."); }
         finally { setSending(false); }
       }} className="space-y-2">
         <label htmlFor="message-body" className="text-sm font-medium">Vaša správa</label>
-        <Textarea id="message-body" value={body} onChange={event => { setBody(event.target.value); clientId.current = null; }} maxLength={4000} rows={3} required disabled={sending} placeholder="Napíšte správu…" />
+        <Textarea id="message-body" value={body} onChange={event => { setBody(event.target.value); clientId.current = null; setSentStatus(""); }} maxLength={4000} rows={3} required disabled={sending} placeholder="Napíšte správu…" />
         <div className="flex items-center justify-between"><span className="text-xs text-muted-foreground">{body.length}/4 000</span><Button type="submit" disabled={sending || !body.trim()}>{sending ? "Odosielam…" : "Odoslať správu"}</Button></div>
       </form>}
   </div>;

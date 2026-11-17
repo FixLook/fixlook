@@ -38,7 +38,7 @@ export async function createServiceAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    redirectWithError("/admin/services", parsed.error.errors[0]?.message ?? "Skontrolujte údaje služby.");
+    redirectWithError("/admin/services", parsed.error.issues[0]?.message ?? "Skontrolujte údaje služby.");
   }
 
   const supabase = await createServerSupabaseClient();

@@ -17,6 +17,17 @@ export default async function MasterOrdersPage() {
     .eq("master_id", profile.id)
     .order("created_at", { ascending: false });
 
+  const serviceIds = [...new Set((orders ?? []).map(order => order.service_id))];
+  const { data: services } = serviceIds.length
+    ? await supabase.from("services").select("id,name").in("id",serviceIds)
+    : { data: [] };
+  const serviceNames = new Map((services ?? []).map(service => [service.id,service.name]));
+  const preferredCounts = new Map<string,number>();
+  for (const order of orders ?? []) if (order.preferred_datetime && !["completed","cancelled"].includes(order.status)) {
+    const key = new Date(order.preferred_datetime).toISOString();
+    preferredCounts.set(key,(preferredCounts.get(key) ?? 0) + 1);
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -33,6 +44,7 @@ export default async function MasterOrdersPage() {
               <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
                 <div>
                   <CardTitle>{order.order_number}</CardTitle>
+                  <p className="mt-1 text-sm font-medium">{serviceNames.get(order.service_id) ?? "Služba"} · {order.city}</p>
                   <p className="mt-1 text-sm text-muted-foreground">
                     {formatDateTime(order.created_at)} - {formatCurrency(order.estimated_price)}
                   </p>
@@ -41,6 +53,11 @@ export default async function MasterOrdersPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="space-y-1 rounded-lg bg-accent p-3 text-sm">
+                <p><strong>Preferovaný termín:</strong> {formatDateTime(order.preferred_datetime)}</p>
+                <p className="text-xs text-muted-foreground">Toto nie je rezervovaný čas. Záväzný termín musí potvrdiť zákazník.</p>
+                {order.preferred_datetime && (preferredCounts.get(new Date(order.preferred_datetime).toISOString()) ?? 0) > 1 && <p role="status" className="font-semibold text-amber-800">Pozor: viacero zákaziek žiada rovnaký preferovaný čas. Pred prijatím skontrolujte kalendár.</p>}
+              </div>
               <p className="text-sm text-dark">{order.problem_description}</p>
               <div className="flex flex-wrap gap-2">
                 <Button asChild variant="outline" size="sm">

@@ -4,10 +4,26 @@ import { updateSession } from "@/lib/supabase/middleware";
 const protectedPrefixes = ["/customer", "/master", "/admin"];
 
 export async function middleware(request: NextRequest) {
-  const sessionResponse = await updateSession(request);
   const isProtected = protectedPrefixes.some((prefix) =>
-    request.nextUrl.pathname.startsWith(prefix)
+    request.nextUrl.pathname === prefix || request.nextUrl.pathname.startsWith(`${prefix}/`)
   );
+  let sessionResponse: NextResponse;
+  try {
+    sessionResponse = await updateSession(request);
+  } catch (error) {
+    // A Supabase outage must not take down public pages, and must never
+    // silently authenticate a user for protected pages.
+    console.error("Supabase session refresh unavailable", {
+      path: request.nextUrl.pathname,
+      errorType: error instanceof Error ? error.name : "UnknownError"
+    });
+    return isProtected
+      ? new NextResponse("Overenie prihlásenia je dočasne nedostupné. Skúste to znova.", {
+          status: 503,
+          headers: { "Cache-Control": "no-store" }
+        })
+      : NextResponse.next();
+  }
 
   if (!isProtected) {
     return sessionResponse;

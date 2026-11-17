@@ -19,7 +19,7 @@ export async function signUpAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    redirectWithError("/register", parsed.error.errors[0]?.message ?? "Skontrolujte zadané údaje.");
+    redirectWithError("/register", parsed.error.issues[0]?.message ?? "Skontrolujte zadané údaje.");
   }
 
   const { fullName, email, password, phone, city, role } = parsed.data;
@@ -57,7 +57,7 @@ export async function signInAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    redirectWithError("/login", parsed.error.errors[0]?.message ?? "Skontrolujte zadané údaje.");
+    redirectWithError("/login", parsed.error.issues[0]?.message ?? "Skontrolujte zadané údaje.");
   }
 
   const supabase = await createServerSupabaseClient();
@@ -94,7 +94,7 @@ export async function requestPasswordResetAction(formData: FormData) {
 }
 export async function updatePasswordAction(formData: FormData) {
   const password = signUpSchema.shape.password.safeParse(formData.get("password"));
-  if (!password.success) redirectWithError("/reset-password", password.error.errors[0]?.message ?? "Skontrolujte heslo.");
+  if (!password.success) redirectWithError("/reset-password", password.error.issues[0]?.message ?? "Skontrolujte heslo.");
   if (password.data !== formData.get("confirmPassword")) redirectWithError("/reset-password", "Heslá sa nezhodujú.");
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();

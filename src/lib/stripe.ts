@@ -17,12 +17,3 @@ export function getStripe() {
 
   return stripe;
 }
-
-export function calculateCommission(amount: number) {
-  const commissionAmount = Math.round(amount * 0.2);
-
-  return {
-    commissionAmount,
-    masterAmount: amount - commissionAmount
-  };
-}

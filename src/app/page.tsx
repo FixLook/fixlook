@@ -93,11 +93,16 @@ export default async function LandingPage() {
   );
   let accountPath: string | null = null;
   if (hasSessionCookie) {
-    const supabase = await createServerSupabaseClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-      accountPath = dashboardPathForRole((profile?.role ?? "customer") as UserRole);
+    try {
+      const supabase = await createServerSupabaseClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+        accountPath = dashboardPathForRole((profile?.role ?? "customer") as UserRole);
+      }
+    } catch {
+      // Authentication outages must not prevent the public homepage from loading.
+      // This does not sign the visitor out or clear their session cookies.
     }
   }
 

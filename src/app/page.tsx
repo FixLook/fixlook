@@ -1,4 +1,8 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { dashboardPathForRole } from "@/lib/auth";
+import type { UserRole } from "@/lib/database.types";
 import Image from "next/image";
 import {
   ArrowDown,
@@ -81,7 +85,27 @@ const questions = [
   }
 ];
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  // The landing page must reflect an existing login, not treat every visitor as anonymous.
+  // Skip Supabase for anonymous visits so the public homepage remains fast and resilient.
+  const hasSessionCookie = (await cookies()).getAll().some(({ name }) =>
+    (name.startsWith("sb-") && name.includes("auth-token")) || name === "sb-access-token"
+  );
+  let accountPath: string | null = null;
+  if (hasSessionCookie) {
+    try {
+      const supabase = await createServerSupabaseClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+        accountPath = dashboardPathForRole((profile?.role ?? "customer") as UserRole);
+      }
+    } catch {
+      // Authentication outages must not prevent the public homepage from loading.
+      // This does not sign the visitor out or clear their session cookies.
+    }
+  }
+
   return (
     <div className="min-h-screen bg-white">
       <a
@@ -109,11 +133,11 @@ export default function LandingPage() {
           </nav>
           <div className="flex items-center gap-2 sm:gap-3">
             <Button asChild variant="ghost" className="px-3">
-              <Link href="/login">Prihlásiť sa</Link>
+              <Link href={accountPath ?? "/login"}>{accountPath ? "Môj účet" : "Prihlásiť sa"}</Link>
             </Button>
             <Button asChild variant="dark" className="hidden sm:inline-flex">
-              <Link href="/register">
-                Začať s FixLook <ArrowRight aria-hidden="true" className="h-4 w-4" />
+              <Link href={accountPath ?? "/register"}>
+                {accountPath ? "Prejsť do účtu" : "Začať s FixLook"} <ArrowRight aria-hidden="true" className="h-4 w-4" />
               </Link>
             </Button>
           </div>
@@ -138,8 +162,8 @@ export default function LandingPage() {
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:mt-9 sm:flex-row">
               <Button asChild size="lg">
-                <Link href="/register">
-                  Potrebujem majstra <ArrowRight aria-hidden="true" className="h-4 w-4" />
+                <Link href={accountPath ?? "/register"}>
+                  {accountPath ? "Moje objednávky" : "Potrebujem majstra"} <ArrowRight aria-hidden="true" className="h-4 w-4" />
                 </Link>
               </Button>
               <Button
@@ -389,8 +413,8 @@ export default function LandingPage() {
               </p>
             </div>
             <Button asChild variant="dark" size="lg">
-              <Link href="/register?role=master">
-                Vytvoriť účet majstra <ArrowRight aria-hidden="true" className="h-4 w-4" />
+              <Link href={accountPath ?? "/register?role=master"}>
+                {accountPath ? "Prejsť do môjho účtu" : "Vytvoriť účet majstra"} <ArrowRight aria-hidden="true" className="h-4 w-4" />
               </Link>
             </Button>
           </div>
@@ -415,7 +439,7 @@ export default function LandingPage() {
             <Link href="#ako-to-funguje" className="hover:text-dark">
               Ako to funguje
             </Link>
-            <Link href="/login" className="hover:text-dark">
+            <Link href={accountPath ?? "/login"} className="hover:text-dark">
               Môj účet
             </Link>
           </nav>

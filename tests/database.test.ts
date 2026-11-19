@@ -180,6 +180,9 @@ test("PostgreSQL: quotes, payments, permissions and private conversations", asyn
   await t.test("only an admin can assign a verified and available professional", async () => {
     await assert.rejects(as(customer, "select public.assign_master($1,$2)", [order,master]), /administrátor/);
     await assert.rejects(as(admin, "select public.assign_master($1,$2)", [order,master]), /overeného/);
+    // New flow: admin confirms a submitted application before activating a master.
+    await as(master, "select public.submit_master_verification('Elektrikár',7,'','','Overená odborná prax v elektroinštaláciách.')");
+    await as(admin, "select public.review_master_verification($1,'approved','')", [master]);
     await as(admin, "select public.verify_master($1,true)", [master]);
     await as(admin, "select public.assign_master($1,$2)", [order,master]);
     assert.equal((await as(stranger,"select * from public.orders where id=$1",[order])).length,0);

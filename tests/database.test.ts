@@ -328,7 +328,7 @@ test("PostgreSQL: quotes, payments, permissions and private conversations", asyn
   });
   await t.test("master verification applications require admin approval, preserve privacy and allow resubmission", async () => {
     const path = `${unverified}/test.pdf`;
-    assert.equal(await scalar<boolean>(null,"select public as value from storage.buckets where id='master-verification'",[],"service_role"),false);
+    assert.equal((await db.query<{ public: boolean }>("select public from storage.buckets where id='master-verification'")).rows[0]?.public,false);
     await assert.rejects(as(admin,"select public.verify_master($1,true)",[unverified]),/iba po schválení/);
     await as(unverified,"insert into storage.objects(bucket_id,name) values('master-verification',$1)",[path]);
     await as(unverified,"insert into public.master_verification_documents(master_id,storage_path,original_name) values($1,$2,'osvedcenie.pdf')",[unverified,path]);

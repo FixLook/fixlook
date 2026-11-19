@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { requireProfile } from "@/lib/auth";
 import { euroToCents, redirectWithError } from "@/lib/form";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { serviceSchema } from "@/lib/validators";
+import { masterReviewSchema, serviceSchema } from "@/lib/validators";
 
 export async function assignMasterAction(formData: FormData) {
   await requireProfile("admin");
@@ -98,4 +98,25 @@ export async function updateServiceAction(formData: FormData) {
   if (error) redirectWithError("/admin/services", publicError(error));
   revalidatePath("/admin/services");
   revalidatePath("/customer/orders/new");
+}
+
+export async function reviewMasterVerificationAction(formData: FormData) {
+  await requireProfile("admin");
+  const parsed = masterReviewSchema.safeParse({
+    masterId: formData.get("masterId"),
+    decision: formData.get("decision"),
+    reason: formData.get("reason") ?? ""
+  });
+  if (!parsed.success) redirectWithError("/admin/professionals",
+    parsed.error.issues[0]?.message ?? "Skontrolujte rozhodnutie.");
+  const db = await createServerSupabaseClient();
+  const { error } = await db.rpc("review_master_verification", {
+    p_master: parsed.data.masterId,
+    p_decision: parsed.data.decision,
+    p_reason: parsed.data.reason
+  });
+  if (error) redirectWithError("/admin/professionals",
+    "Rozhodnutie sa nepodarilo uložiť. Overte stav žiadosti.");
+  revalidatePath("/admin/professionals");
+  revalidatePath("/master/profile");
 }

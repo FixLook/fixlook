@@ -25,3 +25,18 @@ export const masterProfileSchema = z.object({ description: z.string().trim().min
 export const ratingSchema = z.object({ orderId: z.string().uuid("Neplatná objednávka."), stars: z.coerce.number().int().min(1).max(5), comment: z.string().trim().max(2000, "Hodnotenie môže mať najviac 2 000 znakov.").optional() });
 export const profileSchema = z.object({ fullName: name, phone, city });
 export const uuidSchema = z.string().uuid();
+
+export const masterVerificationSchema = z.object({
+  specialty: z.string().trim().min(2).max(160),
+  yearsExperience: z.coerce.number().int().min(0).max(70),
+  ico: z.string().trim().regex(/^\d{8}$/, "IČO musí obsahovať 8 číslic.").or(z.literal("")),
+  referencesText: z.string().trim().max(2000),
+  motivation: z.string().trim().min(20, "Predstavte svoju prax aspoň 20 znakmi.").max(4000)
+});
+export const masterReviewSchema = z.object({
+  masterId: z.string().uuid(),
+  decision: z.enum(["approved", "needs_changes", "rejected"]),
+  reason: z.string().trim().max(2000)
+}).refine(v => v.decision === "approved" || v.reason.length >= 10, {
+  path: ["reason"], message: "Pri zamietnutí alebo doplnení zadajte dôvod (aspoň 10 znakov)."
+});

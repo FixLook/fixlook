@@ -148,7 +148,7 @@ export default async function MasterProfilePage({ searchParams }: { searchParams
               <div className="space-y-2">
                 <Label htmlFor="document">Doklad, certifikát alebo referencia (nepovinné)</Label>
                 <Input id="document" name="document" type="file" accept=".pdf,.jpg,.jpeg,.png" />
-                <p className="text-xs text-muted-foreground">PDF, JPG alebo PNG, najviac 5 MB.</p>
+                <p className="text-xs text-muted-foreground">PDF, JPG alebo PNG, najviac 3 MB.</p>
               </div>
               <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="referencesText">Referencie (nepovinné)</Label>

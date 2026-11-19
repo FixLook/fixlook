@@ -22,6 +22,7 @@ test("PostgreSQL: quotes, payments, permissions and private conversations", asyn
     create table storage.objects(id uuid default gen_random_uuid() primary key, bucket_id text, name text);
     alter table storage.objects enable row level security;
     create function storage.foldername(name text) returns text[] language sql immutable as $$ select (string_to_array(name,'/'))[1:array_length(string_to_array(name,'/'),1)-1] $$;
+    create function storage.extension(name text) returns text language sql immutable as $$ select split_part(name,'.',array_length(string_to_array(name,'.'),1)) $$;
     grant usage on schema public,auth,storage to anon,authenticated,service_role;
     grant all on storage.objects to anon,authenticated,service_role;
     alter default privileges in schema public grant all on tables to anon,authenticated,service_role;
@@ -36,6 +37,8 @@ test("PostgreSQL: quotes, payments, permissions and private conversations", asyn
   await db.exec(await readFile("supabase/migrations/20261116190000_order_schedule_confirmation.sql", "utf8"));
   await db.exec(await readFile("supabase/migrations/20261116203000_schedule_cleanup_on_reassign.sql", "utf8"));
   await db.exec(await readFile("supabase/migrations/20261116214000_preserve_appointments_during_reschedule.sql", "utf8"));
+  await db.exec(await readFile("supabase/migrations/20261119224500_master_verification_applications.sql", "utf8"));
+  await db.exec(await readFile("supabase/migrations/20261119230000_master_verification_revocation.sql", "utf8"));
   for (const [id, role, name] of [[customer,"customer","Zákazník"],[master,"master","Majster"],[admin,"customer","Administrátor"],[stranger,"customer","Cudzí zákazník"],[unverified,"master","Neoverený majster"]]) {
     await db.query("insert into auth.users values ($1,$2,$3)", [id, `${id}@example.test`, JSON.stringify({ role, full_name: name })]);
   }
@@ -177,6 +180,9 @@ test("PostgreSQL: quotes, payments, permissions and private conversations", asyn
   await t.test("only an admin can assign a verified and available professional", async () => {
     await assert.rejects(as(customer, "select public.assign_master($1,$2)", [order,master]), /administrátor/);
     await assert.rejects(as(admin, "select public.assign_master($1,$2)", [order,master]), /overeného/);
+    // New flow: admin confirms a submitted application before activating a master.
+    await as(master, "select public.submit_master_verification('Elektrikár',7,'','','Overená odborná prax v elektroinštaláciách.')");
+    await as(admin, "select public.review_master_verification($1,'approved','')", [master]);
     await as(admin, "select public.verify_master($1,true)", [master]);
     await as(admin, "select public.assign_master($1,$2)", [order,master]);
     assert.equal((await as(stranger,"select * from public.orders where id=$1",[order])).length,0);
@@ -319,5 +325,34 @@ test("PostgreSQL: quotes, payments, permissions and private conversations", asyn
     await as(master, "select public.respond_to_order($1,true)", [aiOrder]);
     await as(master, "select public.propose_quote($1,'Oprava bez potreby novej batérie',3000,0,500)", [aiOrder]);
     await as(master, "select public.propose_quote($1,'Výmena drahšej batérie a poškodených prívodov',15000,10000,2000)", [aiOrder]);
+  });
+  await t.test("master verification applications require admin approval, preserve privacy and allow resubmission", async () => {
+    const path = `${unverified}/test.pdf`;
+    assert.equal((await db.query<{ public: boolean }>("select public from storage.buckets where id='master-verification'")).rows[0]?.public,false);
+    await assert.rejects(as(admin,"select public.verify_master($1,true)",[unverified]),/iba po schválení/);
+    await as(unverified,"insert into storage.objects(bucket_id,name) values('master-verification',$1)",[path]);
+    await as(unverified,"insert into public.master_verification_documents(master_id,storage_path,original_name) values($1,$2,'osvedcenie.pdf')",[unverified,path]);
+    assert.equal((await as(stranger,"select * from public.master_verification_documents")).length,0);
+    assert.equal((await as(null,"select * from storage.objects where name=$1",[path],"anon")).length,0);
+    assert.equal((await as(admin,"select * from public.master_verification_documents")).length,1);
+    assert.equal((await as(unverified,"select * from public.master_verification_documents")).length,1);
+    await assert.rejects(as(stranger,"insert into public.master_verification_documents(master_id,storage_path,original_name) values($1,$2,'cudzi.pdf')",[unverified,`${stranger}/cudzi.pdf`]),/row-level security|check constraint/);
+    await as(unverified,"select public.submit_master_verification('Elektrikár',6,'','Výmena rozvodov','Elektroinštaláciám sa venujem viac ako šesť rokov.')");
+    assert.equal(await scalar<string>(unverified,"select status as value from public.master_verification_applications where master_id=$1",[unverified]),"pending");
+    assert.equal((await as(customer,"select * from public.master_verification_applications where master_id=$1",[unverified])).length,0);
+    await assert.rejects(as(unverified,"select public.submit_master_verification('Elektrikár',6,'','','Toto je druhý pokus o odoslanie žiadosti.')"),/už spracúva/);
+    await assert.rejects(as(unverified,"insert into storage.objects(bucket_id,name) values('master-verification',$1)",[`${unverified}/too-late.pdf`]),/row-level security/);
+    await assert.rejects(as(customer,"select public.review_master_verification($1,'approved','')",[unverified]),/iba administrátor/);
+    await assert.rejects(as(admin,"select public.review_master_verification($1,'rejected','nie')",[unverified]),/odôvodnenie/);
+    await as(admin,"select public.review_master_verification($1,'needs_changes','Prosíme o doplnenie referencií.')",[unverified]);
+    assert.equal(await scalar<string>(unverified,"select status as value from public.master_verification_applications where master_id=$1",[unverified]),"needs_changes");
+    await as(unverified,"select public.submit_master_verification('Elektrikár',6,'','Doplnené referencie','Odborné práce vykonávam dlhodobo s referenciami.')");
+    await as(admin,"select public.review_master_verification($1,'approved','')",[unverified]);
+    assert.equal(await scalar<boolean>(admin,"select verified as value from public.masters where profile_id=$1",[unverified]),true);
+    await as(admin,"select public.verify_master($1,false)",[unverified]);
+    assert.equal(await scalar<boolean>(admin,"select verified as value from public.masters where profile_id=$1",[unverified]),false);
+    assert.equal(await scalar<string>(unverified,"select status as value from public.master_verification_applications where master_id=$1",[unverified]),"rejected");
+    await as(unverified,"select public.submit_master_verification('Elektrikár',6,'','','Po odobratí overenia opätovne žiadam o preskúmanie.')");
+    assert.equal(await scalar<string>(unverified,"select status as value from public.master_verification_applications where master_id=$1",[unverified]),"pending");
   });
 });

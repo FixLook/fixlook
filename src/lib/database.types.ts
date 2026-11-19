@@ -25,6 +25,25 @@ export type Database = {
         Update: { status?: "pending" | "completed" | "failed"; result?: Json; model?: string };
         Relationships: [];
       };
+      master_verification_applications: ReadTable<{
+        master_id: string;
+        status: "pending" | "needs_changes" | "approved" | "rejected";
+        specialty: string;
+        years_experience: number;
+        ico: string | null;
+        references_text: string | null;
+        motivation: string;
+        submitted_at: string;
+        reviewed_at: string | null;
+        reviewed_by: string | null;
+        review_reason: string | null;
+      }>;
+      master_verification_documents: {
+        Row: { id: string; master_id: string; storage_path: string; original_name: string; uploaded_at: string };
+        Insert: { master_id: string; storage_path: string; original_name: string; id?: string; uploaded_at?: string };
+        Update: never;
+        Relationships: [];
+      };
       order_schedules: ReadTable<{
         order_id: string;
         master_id: string;
@@ -370,6 +389,8 @@ export type Database = {
       create_order: { Args: { p_service: number; p_description: string; p_address: string; p_city: string; p_preferred?: string | null; p_request?: string | null }; Returns: string };
       assign_master: { Args: { p_order: string; p_master: string }; Returns: undefined };
       verify_master: { Args: { p_master: string; p_verified: boolean }; Returns: undefined };
+      submit_master_verification: { Args: { p_specialty: string; p_years: number; p_ico: string; p_references: string; p_motivation: string }; Returns: undefined };
+      review_master_verification: { Args: { p_master: string; p_decision: string; p_reason: string }; Returns: undefined };
       respond_to_order: { Args: { p_order: string; p_accept: boolean }; Returns: undefined };
       propose_schedule: { Args: { p_order: string; p_start: string; p_duration: number }; Returns: undefined };
       respond_to_schedule: { Args: { p_order: string; p_accept: boolean }; Returns: undefined };

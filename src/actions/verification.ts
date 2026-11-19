@@ -39,8 +39,8 @@ export async function submitMasterVerificationAction(formData: FormData) {
   let uploadedPath: string | null = null;
   if (file instanceof File && file.size > 0) {
     const extension = mimeExtension[file.type];
-    if (!extension || file.size > 5 * 1024 * 1024) {
-      redirectWithError(destination, "Príloha musí byť PDF, JPG alebo PNG a mať najviac 5 MB.");
+    if (!extension || file.size > 3 * 1024 * 1024) {
+      redirectWithError(destination, "Príloha musí byť PDF, JPG alebo PNG a mať najviac 3 MB.");
     }
     // Files never use user-supplied filenames as their storage path.
     uploadedPath = `${profile.id}/${randomUUID()}.${extension}`;

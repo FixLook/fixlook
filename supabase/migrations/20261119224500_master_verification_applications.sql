@@ -52,7 +52,7 @@ for delete to authenticated using(
 );
 
 insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types)
-values('master-verification','master-verification',false,5242880,array['application/pdf','image/jpeg','image/png'])
+values('master-verification','master-verification',false,3145728,array['application/pdf','image/jpeg','image/png'])
 on conflict(id) do nothing;
 create policy "verification files private read" on storage.objects for select to authenticated
 using(bucket_id='master-verification' and ((storage.foldername(name))[1]=(select auth.uid())::text or (select public.is_admin())));
